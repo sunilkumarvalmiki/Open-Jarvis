@@ -1,6 +1,9 @@
 use std::{fs, path::Path};
 use tauri::Manager;
 
+// MCP integration module (stub implementation)
+mod mcp;
+
 #[tauri::command]
 fn open_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
     tauri::async_runtime::spawn(async move {
@@ -93,7 +96,11 @@ fn organize_impl(dir: &Path) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![open_browser, empty_recycle_bin, organize_files])
+        .invoke_handler(tauri::generate_handler![
+            open_browser,
+            empty_recycle_bin,
+            organize_files
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
