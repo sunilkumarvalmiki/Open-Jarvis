@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/sunilkumarvalmiki/Open-Jarvis/discussions
+    about: Ask questions, share ideas, and discuss with the community
+  - name: 📖 Documentation
+    url: https://github.com/sunilkumarvalmiki/Open-Jarvis/tree/main/docs
+    about: Read the documentation for help and guides
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/sunilkumarvalmiki/Open-Jarvis/security/advisories/new
+    about: Report security vulnerabilities privately

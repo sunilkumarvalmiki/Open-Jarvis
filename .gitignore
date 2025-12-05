@@ -1,2 +1,61 @@
+# Rust
 /target
 src-tauri/target
+*.pdb
+**/*.rs.bk
+Cargo.lock
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.pnpm-store/
+dist/
+dist-ssr/
+*.local
+
+# Tauri
+src-tauri/target/
+src-tauri/WixTools/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Build artifacts
+*.exe
+*.dmg
+*.app
+*.deb
+*.rpm
+*.AppImage
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.fleet/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

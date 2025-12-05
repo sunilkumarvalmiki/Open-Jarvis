@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          draft: true
+          prerelease: false
+          body: |
+            ## What's Changed
+            
+            <!-- Add release notes here -->
+            
+            ## Installation
+            
+            Download the appropriate installer for your platform below.
+            
+            ### Supported Platforms
+            - Windows (x64)
+            - macOS (Intel & Apple Silicon)
+            - Linux (x64)
+
+  build-release:
+    name: Build Release for ${{ matrix.platform }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: jarvis
+            artifact_ext: ''
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: jarvis
+            artifact_ext: ''
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: jarvis
+            artifact_ext: '.exe'
+    
+    runs-on: ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      
+      - name: Build and package
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: src-tauri
+          tagName: ${{ needs.create-release.outputs.version }}
+          releaseName: 'Open-Jarvis ${{ needs.create-release.outputs.version }}'
+          releaseBody: 'See the release notes for details.'
+          releaseDraft: true
+          prerelease: false
+          includeDebug: false
+          includeRelease: true
