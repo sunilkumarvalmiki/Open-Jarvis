@@ -1,0 +1,39 @@
+{
+  "name": "open-jarvis",
+  "version": "0.1.0",
+  "description": "An intelligent, privacy-first desktop AI assistant built with Rust and Tauri",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "format": "cd src-tauri && cargo fmt",
+    "lint": "cd src-tauri && cargo clippy -- -D warnings",
+    "test": "cd src-tauri && cargo test"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "tauri",
+    "rust",
+    "mcp",
+    "desktop"
+  ],
+  "author": "Open-Jarvis Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sunilkumarvalmiki/Open-Jarvis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sunilkumarvalmiki/Open-Jarvis/issues"
+  },
+  "homepage": "https://github.com/sunilkumarvalmiki/Open-Jarvis#readme",
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.9"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}
