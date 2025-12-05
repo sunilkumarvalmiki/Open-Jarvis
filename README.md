@@ -100,9 +100,8 @@ Open-Jarvis uses the Model Context Protocol for extensible tool integration:
 ```rust
 // Example MCP tool registration
 let mcp_client = McpClient::new()
-    .add_server("github", GithubMcpServer::new())
-    .add_server("filesystem", FilesystemMcpServer::new())
-    .build();
+    .add_server(GithubMcpServer::new())
+    .add_server(FilesystemMcpServer::new());
 ```
 
 ## Configuration

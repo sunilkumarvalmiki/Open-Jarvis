@@ -13,8 +13,9 @@ impl McpClient {
         }
     }
 
-    pub fn add_server<S: McpServer + 'static>(mut self, name: &str, server: S) -> Self {
-        self.servers.insert(name.to_string(), Box::new(server));
+    pub fn add_server<S: McpServer + 'static>(mut self, server: S) -> Self {
+        let name = server.name().to_string();
+        self.servers.insert(name, Box::new(server));
         self
     }
 
@@ -42,11 +43,11 @@ impl Default for McpClient {
 pub trait McpServer: Send + Sync {
     fn name(&self) -> &str;
     fn tools(&self) -> Vec<ToolDefinition>;
-    fn call_tool(
+    async fn call_tool(
         &self,
         tool: &str,
         params: serde_json::Value,
-    ) -> impl std::future::Future<Output = Result<serde_json::Value, McpError>> + Send;
+    ) -> Result<serde_json::Value, McpError>;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

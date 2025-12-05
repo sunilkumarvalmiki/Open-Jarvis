@@ -125,8 +125,8 @@ use crate::mcp::server::MyCustomServer;
 
 fn setup_mcp() -> McpClient {
     McpClient::new()
-        .add_server("my_custom_server", MyCustomServer::new())
-        .add_server("filesystem", FilesystemMcpServer::new())
+        .add_server(MyCustomServer::new())
+        .add_server(FilesystemMcpServer::new())
         // Add more servers as needed
 }
 ```

@@ -69,13 +69,15 @@ impl McpServer for FilesystemMcpServer {
     ) -> Result<serde_json::Value, McpError> {
         match tool {
             "read_file" => {
-                // Implementation would go here
+                // TODO: Implement actual file reading logic
+                // This is a placeholder implementation for the MCP foundation
                 Ok(serde_json::json!({
                     "content": "File content placeholder"
                 }))
             }
             "list_directory" => {
-                // Implementation would go here
+                // TODO: Implement actual directory listing logic
+                // This is a placeholder implementation for the MCP foundation
                 Ok(serde_json::json!({
                     "files": []
                 }))
