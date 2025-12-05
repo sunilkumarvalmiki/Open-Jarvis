@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Open-Jarvis v${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          body: |
+            ## Changes in this Release
+            
+            See the [CHANGELOG](https://github.com/sunilkumarvalmiki/Open-Jarvis/blob/main/CHANGELOG.md) for details.
+            
+            ## Installation
+            
+            Download the appropriate package for your platform below.
+            
+            ### Checksums
+            
+            SHA256 checksums will be provided for all artifacts.
+
+  build-release:
+    name: Build Release - ${{ matrix.platform }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            rust_target: x86_64-unknown-linux-gnu
+            artifact_name: open-jarvis
+            artifact_ext: .AppImage
+          - os: macos-latest
+            rust_target: x86_64-apple-darwin
+            artifact_name: open-jarvis
+            artifact_ext: .dmg
+          - os: macos-latest
+            rust_target: aarch64-apple-darwin
+            artifact_name: open-jarvis
+            artifact_ext: .dmg
+          - os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            artifact_name: open-jarvis
+            artifact_ext: .msi
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.rust_target }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install dependencies (Ubuntu)
+        if: matrix.platform.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libsoup2.4-dev \
+            libjavascriptcoregtk-4.1-dev
+          # Create symlinks for webkit2gtk-4.0 compatibility
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-web-extension-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-web-extension-4.0.pc
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/javascriptcoregtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/javascriptcoregtk-4.0.pc
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.0.so
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libjavascriptcoregtk-4.1.so /usr/lib/x86_64-linux-gnu/libjavascriptcoregtk-4.0.so
+      
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.upload_url }}
+          args: --target ${{ matrix.platform.rust_target }}
+      
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle
+          for file in *${{ matrix.platform.artifact_ext }}; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" > "$file.sha256"
+            fi
+          done
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.artifact_name }}-${{ matrix.platform.rust_target }}
+          path: |
+            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*${{ matrix.platform.artifact_ext }}
+            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*.sha256
+
+  publish-release:
+    name: Publish Release Notes
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Update release notes
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: context.ref.replace('refs/tags/', '')
+            });
+            
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              body: release.data.body + '\n\n## 🎉 Release completed successfully!\n\nAll platform binaries have been built and uploaded.'
+            });
