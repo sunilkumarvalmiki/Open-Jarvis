@@ -93,7 +93,11 @@ fn organize_impl(dir: &Path) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![open_browser, empty_recycle_bin, organize_files])
+        .invoke_handler(tauri::generate_handler![
+            open_browser,
+            empty_recycle_bin,
+            organize_files
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
