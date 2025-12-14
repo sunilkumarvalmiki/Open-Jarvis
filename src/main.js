@@ -24,7 +24,10 @@ async function handleCommand(buttonId, command, args = {}) {
   setLoading(buttonId, true);
   try {
     const result = await invoke(command, args);
-    showNotification(result || 'Operation completed successfully');
+    const message = (result !== null && result !== undefined && result !== '') 
+      ? result 
+      : 'Operation completed successfully';
+    showNotification(message);
   } catch (error) {
     showNotification(`Error: ${error}`, 'error');
     console.error(`Command ${command} failed:`, error);

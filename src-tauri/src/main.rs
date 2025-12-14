@@ -1,4 +1,4 @@
-use std::{fs, path::Path, time::Duration};
+use std::{fs, path::Path};
 use tauri::Manager;
 
 // MCP integration module (stub implementation)
@@ -9,7 +9,6 @@ mod error;
 
 #[tauri::command]
 async fn open_browser(app: tauri::AppHandle, url: String) -> Result<String, String> {
-    tokio::time::sleep(Duration::from_millis(100)).await;
     let url_clone = url.clone();
     tauri::api::shell::open(&app.shell_scope(), url, None).map_err(|e| e.to_string())?;
     Ok(format!("Opened {} successfully", url_clone))
@@ -17,14 +16,12 @@ async fn open_browser(app: tauri::AppHandle, url: String) -> Result<String, Stri
 
 #[tauri::command]
 async fn empty_recycle_bin() -> Result<String, String> {
-    tokio::time::sleep(Duration::from_millis(100)).await;
     empty_bin_impl()?;
     Ok("Recycle bin emptied successfully".to_string())
 }
 
 #[tauri::command]
 async fn organize_files() -> Result<String, String> {
-    tokio::time::sleep(Duration::from_millis(100)).await;
     if let Some(home) = dirs_next::download_dir() {
         organize_impl(&home)
     } else {
@@ -107,7 +104,25 @@ fn organize_impl(dir: &Path) -> Result<String, String> {
                     _ => None,
                 };
                 if let Some(dest_dir) = dest {
-                    let dest_path = dest_dir.join(entry.file_name());
+                    let mut dest_path = dest_dir.join(entry.file_name());
+                    // Handle existing files by appending a number
+                    if dest_path.exists() {
+                        let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+                        let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+                        let mut counter = 1;
+                        loop {
+                            let new_name = if extension.is_empty() {
+                                format!("{}_{}", file_stem, counter)
+                            } else {
+                                format!("{}_{}.{}", file_stem, counter, extension)
+                            };
+                            dest_path = dest_dir.join(new_name);
+                            if !dest_path.exists() {
+                                break;
+                            }
+                            counter += 1;
+                        }
+                    }
                     if fs::rename(&path, dest_path).is_ok() {
                         moved_count += 1;
                     }
