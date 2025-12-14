@@ -1,12 +1,14 @@
-name: Feature Request
-description: Suggest a new feature or enhancement
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for Open-Jarvis
 title: "[Feature]: "
-labels: ["enhancement"]
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a new feature!
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
 
   - type: textarea
     id: problem
@@ -31,17 +33,21 @@ body:
     attributes:
       label: Alternatives Considered
       description: Describe alternatives you've considered
-      placeholder: I also considered...
+      placeholder: I've also thought about...
+    validations:
+      required: false
 
   - type: dropdown
-    id: category
+    id: feature-area
     attributes:
-      label: Feature Category
-      description: What type of feature is this?
+      label: Feature Area
+      description: Which area does this feature belong to?
       options:
         - UI/UX
-        - AI/LLM Integration
+        - Voice Interface
         - MCP Integration
+        - File Management
+        - System Integration
         - Performance
         - Security
         - Documentation
@@ -49,17 +55,80 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
-    id: contribute
+  - type: dropdown
+    id: priority
     attributes:
-      label: Contribution
-      description: Would you be willing to contribute this feature?
+      label: Priority
+      description: How important is this feature to you?
       options:
-        - label: I'm willing to implement this feature
-          required: false
+        - Nice to have
+        - Important
+        - Critical
+    validations:
+      required: true
 
   - type: textarea
-    id: additional
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe your use case and how this feature would help
+      placeholder: |
+        As a [type of user], I want [goal] so that [benefit].
+        
+        Example workflow:
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Examples
+      description: If applicable, add mockups, screenshots, or examples from other applications
+      placeholder: Drag and drop images here or paste image URLs
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical-details
+    attributes:
+      label: Technical Details
+      description: Any technical implementation details or suggestions
+      placeholder: This could be implemented using...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
     attributes:
       label: Additional Context
-      description: Add any other context, screenshots, or examples about the feature
+      description: Add any other context about the feature request here
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be interested in contributing this feature?
+      options:
+        - label: I would like to implement this feature myself
+          required: false
+        - label: I can help with testing this feature
+          required: false
+        - label: I can help with documentation for this feature
+          required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided all required information above
+          required: true
+        - label: This feature aligns with the project's goals and scope
+          required: true

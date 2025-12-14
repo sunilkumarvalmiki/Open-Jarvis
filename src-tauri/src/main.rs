@@ -1,6 +1,7 @@
 use std::{fs, path::Path};
 use tauri::Manager;
 
+// MCP integration module (stub implementation)
 mod mcp;
 
 #[tauri::command]

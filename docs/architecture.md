@@ -1,242 +1,427 @@
-# Open-Jarvis Architecture
+# Architecture Overview
 
-## Overview
+This document provides a comprehensive overview of the Open-Jarvis architecture, including system design, component interactions, and security considerations.
 
-Open-Jarvis is a desktop AI assistant built with Tauri, combining a web-based frontend with a high-performance Rust backend. The architecture is designed for extensibility, privacy, and performance.
+## Table of Contents
 
-## System Architecture
+- [System Overview](#system-overview)
+- [Component Architecture](#component-architecture)
+- [Data Flow](#data-flow)
+- [MCP Integration Points](#mcp-integration-points)
+- [Security Model](#security-model)
+- [Technology Stack](#technology-stack)
+
+## System Overview
+
+Open-Jarvis is a desktop AI assistant built using the Tauri framework, combining a Rust backend with a web-based frontend. The application leverages the Model Context Protocol (MCP) for extensibility and integration with external tools and services.
+
+### High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Open-Jarvis                             │
-├─────────────────────────────────────────────────────────────┤
+│                      User Interface Layer                   │
+│                    (HTML/CSS/JavaScript)                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Voice Input │  │   Commands   │  │    Status    │      │
+│  │   Interface  │  │   Dashboard  │  │   Display    │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                    Tauri IPC Bridge
+                             │
+┌────────────────────────────▼────────────────────────────────┐
+│                    Application Core (Rust)                  │
 │                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
-│  │   Frontend   │    │  Tauri Core  │    │  MCP Client  │   │
-│  │  (Web View)  │◄──►│    (Rust)    │◄──►│   (Tools)    │   │
-│  └──────────────┘    └──────┬───────┘    └──────────────┘   │
-│                             │                                │
-│                    ┌────────▼────────┐                      │
-│                    │   AI Backend    │                      │
-│                    │                 │                      │
-│                    │ ┌─────────────┐ │                      │
-│                    │ │ Local LLM   │ │                      │
-│                    │ │ (Ollama)    │ │                      │
-│                    │ └─────────────┘ │                      │
-│                    │ ┌─────────────┐ │                      │
-│                    │ │ Cloud LLM   │ │                      │
-│                    │ │ (OpenAI/    │ │                      │
-│                    │ │  Anthropic) │ │                      │
-│                    │ └─────────────┘ │                      │
-│                    └─────────────────┘                      │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              Command Handler Layer                  │    │
+│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  │    │
+│  │  │    Browser   │  │    File     │  │  System  │  │    │
+│  │  │   Commands   │  │ Organization│  │ Commands │  │    │
+│  │  └──────────────┘  └─────────────┘  └──────────┘  │    │
+│  └────────────────────────────────────────────────────┘    │
 │                                                              │
-└─────────────────────────────────────────────────────────────┘
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              MCP Integration Layer                  │    │
+│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  │    │
+│  │  │  MCP Client  │  │    Tools    │  │  Config  │  │    │
+│  │  │   Manager    │  │   Registry  │  │  Manager │  │    │
+│  │  └──────────────┘  └─────────────┘  └──────────┘  │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              System Interface Layer                 │    │
+│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  │    │
+│  │  │ File System  │  │   Process   │  │ Network  │  │    │
+│  │  │    APIs      │  │  Management │  │   APIs   │  │    │
+│  │  └──────────────┘  └─────────────┘  └──────────┘  │    │
+│  └────────────────────────────────────────────────────┘    │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+┌───────▼────────┐  ┌─────▼──────┐  ┌──────▼─────────┐
+│  External MCP  │  │ ai-context │  │   polynote     │
+│     Tools      │  │  -manager  │  │  Knowledge DB  │
+│ (GitHub, etc.) │  │   (RAG)    │  │                │
+└────────────────┘  └────────────┘  └────────────────┘
 ```
 
-## Components
+## Component Architecture
 
-### Frontend (Web View)
+### 1. User Interface Layer
 
-The frontend is built using web technologies (HTML, CSS, JavaScript) and rendered in a WebView.
+**Technology**: HTML5, CSS3, JavaScript (Vanilla)
 
-**Responsibilities:**
-- User interface rendering
-- User input handling
-- Display of AI responses
-- Settings management
+**Responsibilities**:
+- Render user interface
+- Capture user input (voice, clicks, keyboard)
+- Display command results and status updates
+- Provide visual feedback for operations
 
-**Technologies:**
-- HTML/CSS for UI
-- JavaScript for interactivity
-- Tauri API for backend communication
+**Key Files**:
+- `src/index.html` - Main UI structure
+- `src/main.js` - Event handlers and Tauri IPC calls
+- `src/style.css` - UI styling
 
-### Tauri Core (Rust)
+### 2. Application Core (Rust)
 
-The Tauri core provides the bridge between the frontend and backend functionality.
+**Technology**: Rust, Tauri Framework
 
-**Responsibilities:**
-- Window management
-- IPC (Inter-Process Communication) between frontend and backend
-- Security boundaries
-- System API access
-- Command handling
+**Responsibilities**:
+- Handle IPC communication from frontend
+- Execute system commands
+- Manage application state
+- Coordinate MCP integrations
+- Handle errors and provide feedback
 
-**Key Files:**
-- `src-tauri/src/main.rs`: Entry point and command registration
-- `src-tauri/src/commands/`: Tauri command implementations
-- `src-tauri/tauri.conf.json`: Tauri configuration
+**Key Modules**:
+- `main.rs` - Application entry point and Tauri setup
+- Command handlers (`#[tauri::command]` functions)
+- MCP integration module (future)
 
-### MCP Client
+### 3. Command Handler Layer
 
-The Model Context Protocol (MCP) client enables integration with external tools and services.
+Implements specific functionality exposed to the frontend:
 
-**Responsibilities:**
-- Tool discovery and registration
-- Tool execution
-- Result handling
-- Error management
+#### Browser Commands
+- `open_browser(url)` - Opens URLs in default browser
+- Uses async execution to prevent UI blocking
 
-**Architecture:**
-```
-McpClient
-├── Server Registry (HashMap<String, Box<dyn McpServer>>)
-└── call_tool(server, tool, params) -> Result
-    └── Routes to appropriate server
-        └── Executes tool with params
-            └── Returns result
-```
+#### File Organization
+- `organize_files()` - Organizes downloads folder by file type
+- Creates categorized folders (Documents, Music, Pictures)
+- Moves files based on extensions
 
-**Key Files:**
-- `src-tauri/src/mcp/client.rs`: Core MCP client
-- `src-tauri/src/mcp/server.rs`: Server implementations
-- `src-tauri/src/mcp/tools.rs`: Tool definitions
+#### System Commands
+- `empty_recycle_bin()` - Clears system trash/recycle bin
+- Platform-specific implementations (Windows, macOS, Linux)
 
-### AI Backend
+### 4. MCP Integration Layer
 
-The AI backend handles all LLM interactions, supporting both local and cloud providers.
+**Status**: In Development
 
-**Responsibilities:**
-- LLM provider abstraction
-- Prompt construction
-- Response streaming
-- Context management
-- Model selection
+**Purpose**: Enable extensibility through Model Context Protocol
 
-**Supported Providers:**
-- Local: Ollama, LLaMA.cpp
-- Cloud: OpenAI, Anthropic, Google
+**Components**:
+- **MCP Client**: Manages connections to MCP servers
+- **Tools Registry**: Registers and manages available tools
+- **Config Manager**: Handles MCP configuration
+
+See [MCP Integration](./mcp-integration.md) for details.
+
+### 5. System Interface Layer
+
+**Platform Abstraction**: Provides cross-platform system access
+
+**Capabilities**:
+- File system operations (read, write, organize)
+- Process management (execute commands)
+- Network operations (HTTP requests, WebSocket)
+- OS-specific features (clipboard, notifications)
 
 ## Data Flow
 
-### User Query Flow
+### Command Execution Flow
 
 ```
-1. User enters query in Frontend
-   ↓
-2. Frontend sends IPC message to Tauri
-   ↓
-3. Tauri routes to appropriate command handler
-   ↓
-4. Command handler processes request
-   ↓
-5. AI Backend generates response
-   ├─ Local LLM (Ollama)
-   └─ Cloud LLM (OpenAI/Anthropic)
-   ↓
-6. Response sent back through IPC
-   ↓
-7. Frontend displays response
+User Action (Click/Voice)
+    │
+    ▼
+Frontend Event Handler (main.js)
+    │
+    ▼
+Tauri IPC Call (invoke)
+    │
+    ▼
+Rust Command Handler (#[tauri::command])
+    │
+    ├─► Async Task Spawn
+    │   │
+    │   ▼
+    │   Platform-Specific Implementation
+    │   │
+    │   ▼
+    │   System API Call
+    │   │
+    │   ▼
+    │   Result/Error
+    │
+    ▼
+Response to Frontend
+    │
+    ▼
+UI Update/Notification
 ```
 
-### Tool Execution Flow
+### MCP Integration Flow (Planned)
 
 ```
-1. AI determines tool is needed
-   ↓
-2. AI Backend calls MCP Client
-   ↓
-3. MCP Client routes to appropriate server
-   ↓
-4. Server executes tool
-   ↓
-5. Result returned to AI Backend
-   ↓
-6. AI incorporates result into response
-   ↓
-7. Final response sent to Frontend
+Command Request
+    │
+    ▼
+MCP Client
+    │
+    ├─► Tool Lookup
+    │   │
+    │   ▼
+    │   Tool Selection
+    │   │
+    │   ▼
+    │   Parameter Preparation
+    │
+    ▼
+MCP Server Communication
+    │
+    ├─► Request Serialization
+    │   │
+    │   ▼
+    │   Network Transport
+    │   │
+    │   ▼
+    │   Response Deserialization
+    │
+    ▼
+Result Processing
+    │
+    ▼
+Return to Command Handler
 ```
+
+## MCP Integration Points
+
+### Current Integration Points
+
+1. **File System Operations**
+   - Directory organization
+   - File management
+   - Path resolution
+
+2. **Browser Automation**
+   - URL opening
+   - Web navigation
+
+3. **System Management**
+   - Recycle bin operations
+   - Process execution
+
+### Planned Integration Points
+
+1. **GitHub Operations**
+   - Repository management
+   - Issue tracking
+   - Pull request automation
+
+2. **AI Context Manager**
+   - Knowledge retrieval (RAG)
+   - Context injection
+   - Semantic search
+
+3. **Polynote Integration**
+   - Note management
+   - Knowledge graph
+   - Cross-referencing
+
+4. **Custom Tools**
+   - User-defined MCP tools
+   - Plugin system
+   - Extension marketplace
 
 ## Security Model
 
-### Sandboxing
+### Security Principles
 
-- Frontend runs in a sandboxed WebView
-- No direct file system access from frontend
-- All system operations go through Tauri commands
+1. **Principle of Least Privilege**: Commands run with minimal required permissions
+2. **User Confirmation**: Destructive operations require explicit user approval
+3. **Sandboxing**: Tauri's security model provides process isolation
+4. **Data Privacy**: No data transmitted without user consent
 
-### Permission Model
+### Security Layers
 
-- Explicit permissions required in `tauri.conf.json`
-- Capabilities defined per command
-- CSP (Content Security Policy) enforced
+#### 1. Tauri Security
 
-### Data Privacy
+- **CSP (Content Security Policy)**: Restricts resource loading
+- **IPC Allowlist**: Only explicitly registered commands are callable
+- **Process Isolation**: Frontend and backend run in separate processes
 
-- Local-first architecture
-- User data stays on device
-- Optional cloud sync with encryption
-- No telemetry by default
+#### 2. Rust Memory Safety
 
-## Configuration
+- **No Buffer Overflows**: Rust's ownership system prevents memory corruption
+- **Safe Concurrency**: Type system prevents data races
+- **Error Handling**: Explicit error handling (Result types)
 
-Configuration is stored in `~/.config/open-jarvis/config.toml`:
+#### 3. Platform Security
 
-```toml
-[ai]
-provider = "ollama"
-model = "llama3.2"
+- **Sandboxed File Access**: Limited to user-approved directories
+- **System API Restrictions**: Uses platform security mechanisms
+- **Credential Management**: Secure storage for API keys
 
-[ai.ollama]
-base_url = "http://localhost:11434"
+### Threat Model
 
-[ai.openai]
-api_key = "${OPENAI_API_KEY}"
+**Threats Mitigated**:
+- ✅ Arbitrary code execution from frontend
+- ✅ Unauthorized file system access
+- ✅ Memory corruption vulnerabilities
+- ✅ Cross-site scripting (XSS)
 
-[mcp]
-servers = ["github", "filesystem"]
-```
+**Ongoing Considerations**:
+- ⚠️ Supply chain security (dependency auditing)
+- ⚠️ Network-based attacks (when MCP integration is active)
+- ⚠️ Social engineering (user-initiated destructive commands)
 
-## Extension Points
+### Security Best Practices
 
-### Adding a New MCP Server
+1. **Dependency Auditing**:
+   ```bash
+   cargo audit
+   ```
 
-1. Implement the `McpServer` trait
-2. Define tools via `tools()` method
-3. Implement tool execution in `call_tool()`
-4. Register server with `McpClient`
+2. **Code Scanning**:
+   - GitHub Dependabot
+   - Clippy security lints
+   - Manual security reviews
 
-### Adding a New AI Provider
+3. **Update Policy**:
+   - Regular dependency updates
+   - Security patch priority
+   - Version pinning for stability
 
-1. Implement provider client
-2. Add to AI backend router
-3. Add configuration schema
-4. Update settings UI
+## Technology Stack
 
-### Adding a New Command
+### Backend (Rust)
 
-1. Define command function with `#[tauri::command]`
-2. Register in `invoke_handler`
-3. Add frontend bindings
-4. Update UI
-
-## Performance Considerations
-
-### Rust Backend
-
-- Zero-cost abstractions
-- Minimal runtime overhead
-- Efficient memory usage
-- Fast startup time
+- **Tauri 1.x**: Desktop application framework
+- **tokio**: Async runtime
+- **serde**: Serialization/deserialization
+- **dirs-next**: Platform-agnostic directory access
 
 ### Frontend
 
-- Lazy loading
-- Virtual scrolling for long conversations
-- Efficient re-rendering
-- Optimized bundle size
+- **HTML5**: Markup
+- **CSS3**: Styling
+- **Vanilla JavaScript**: Logic (no framework dependencies)
+- **Tauri API**: Bridge to Rust backend
 
-### AI Integration
+### Development Tools
 
-- Request batching
-- Response streaming
-- Context caching
-- Model warm-up
+- **rustfmt**: Code formatting
+- **clippy**: Linting and best practices
+- **cargo**: Build system and package manager
+- **GitHub Actions**: CI/CD
 
-## Future Enhancements
+### Future Additions
 
-- Plugin system for community extensions
-- Cross-device sync
-- Voice input/output
-- Mobile companion app
-- Advanced context management
-- Multi-agent orchestration
+- **MCP Client Library**: For protocol communication
+- **Speech Recognition**: For voice commands
+- **LLM Integration**: For natural language processing
+- **Database**: For persistent state (SQLite or similar)
+
+## Performance Considerations
+
+### Optimization Strategies
+
+1. **Async Execution**: Non-blocking operations for UI responsiveness
+2. **Lazy Loading**: Load components on demand
+3. **Caching**: Cache frequently accessed data
+4. **Batch Operations**: Group similar operations
+
+### Resource Management
+
+- **Memory**: Rust's ownership system provides automatic memory management
+- **CPU**: Background tasks for heavy computations
+- **Disk I/O**: Async file operations
+- **Network**: Connection pooling for MCP communications
+
+## Scalability
+
+### Current Limitations
+
+- Single-user desktop application
+- Local processing only
+- Limited concurrent operations
+
+### Future Scalability
+
+- Multi-user configurations (enterprise)
+- Distributed MCP server architecture
+- Cloud-based AI model integration
+- Plugin ecosystem
+
+## Deployment
+
+### Distribution Methods
+
+1. **Platform-Specific Installers**:
+   - Windows: .msi, .exe
+   - macOS: .dmg, .app
+   - Linux: .deb, .rpm, AppImage
+
+2. **Auto-Update**:
+   - Tauri's built-in updater
+   - Version checking
+   - Delta updates
+
+3. **Package Managers**:
+   - Homebrew (macOS)
+   - Chocolatey (Windows)
+   - apt/yum (Linux)
+
+## Monitoring and Diagnostics
+
+### Logging
+
+- Structured logging with log levels
+- Rotation and retention policies
+- User-accessible log viewer
+
+### Error Reporting
+
+- Graceful error handling
+- User-friendly error messages
+- Optional error reporting (with user consent)
+
+### Metrics
+
+- Command execution times
+- Success/failure rates
+- Resource usage statistics
+
+## Future Architecture Evolution
+
+### Planned Enhancements
+
+1. **Voice Interface**: Speech-to-text and text-to-speech
+2. **AI Model Integration**: Local LLM support
+3. **Plugin System**: Third-party extensions
+4. **Cloud Sync**: Optional cloud backup and sync
+5. **Multi-Device**: Cross-device coordination
+
+### Research Areas
+
+- Edge AI models for offline capabilities
+- Federated learning for privacy-preserving model improvement
+- Advanced MCP tool marketplace
+- Integration with smart home systems
+
+---
+
+For questions or suggestions about the architecture, please open an issue or discussion on GitHub.
