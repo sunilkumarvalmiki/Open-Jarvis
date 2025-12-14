@@ -3,29 +3,41 @@
 //! This module provides the foundation for integrating external tools
 //! and services via the Model Context Protocol.
 //!
+//! # Overview
+//!
+//! The MCP integration allows Open-Jarvis to extend its capabilities
+//! by connecting to external MCP servers that provide tools, resources,
+//! and prompts.
+//!
 //! # Architecture
 //!
-//! The MCP module is organized into three main components:
-//!
-//! - `client`: Handles communication with MCP servers
-//! - `tools`: Defines and manages available MCP tools
-//! - `config`: Configuration and settings for MCP connections
+//! - `client`: MCP client implementation for communicating with servers
+//! - `tools`: Tool registry and management
+//! - `config`: Configuration management for MCP servers
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```rust,no_run
 //! use crate::mcp::{McpClient, McpConfig};
 //!
-//! let config = McpConfig::load_from_file("config.json")?;
-//! let client = McpClient::new(config);
-//! client.connect().await?;
+//! async fn example() -> Result<(), String> {
+//!     let config = McpConfig::load()?;
+//!     let client = McpClient::new(&config).await?;
+//!     
+//!     // Call a tool
+//!     let result = client.call_tool("github_list_repos", serde_json::json!({
+//!         "username": "sunilkumarvalmiki"
+//!     })).await?;
+//!     
+//!     Ok(())
+//! }
 //! ```
 
 pub mod client;
 pub mod config;
 pub mod tools;
 
-// Re-exports for convenient access
+// Re-exports for convenience
 pub use client::McpClient;
 pub use config::McpConfig;
-pub use tools::McpTool;
+pub use tools::ToolRegistry;

@@ -1,162 +1,186 @@
-//! MCP Configuration
+//! MCP configuration management
 //!
-//! This module provides configuration structures and loading for MCP.
+//! This module handles loading and managing MCP server configurations.
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::collections::HashMap;
 
-/// MCP configuration
-///
-/// Contains settings for MCP servers, security, and general configuration.
+/// MCP server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpConfig {
-    /// Configuration version
-    pub version: String,
-    /// List of configured MCP servers
-    pub servers: Vec<ServerConfig>,
+    /// Map of server name to server configuration
+    pub servers: HashMap<String, ServerConfig>,
+
     /// Security settings
+    #[serde(default)]
     pub security: SecurityConfig,
 }
 
 impl Default for McpConfig {
     fn default() -> Self {
         Self {
-            version: "1.0".to_string(),
-            servers: Vec::new(),
+            servers: HashMap::new(),
             security: SecurityConfig::default(),
         }
     }
 }
 
 impl McpConfig {
-    /// Load configuration from default location
+    /// Loads configuration from the default location
     ///
-    /// Returns the default configuration if file doesn't exist.
+    /// # Returns
+    ///
+    /// Returns the loaded configuration or an error
     pub fn load() -> Result<Self, String> {
-        // TODO: Implement loading from platform-specific config directory
+        // TODO: Implement actual config loading from file
         Ok(Self::default())
     }
 
-    /// Get configuration file path for the current platform
-    pub fn get_config_path() -> Result<PathBuf, String> {
-        #[cfg(target_os = "linux")]
-        {
-            if let Some(home) = dirs_next::home_dir() {
-                return Ok(home.join(".config/jarvis/mcp-config.json"));
-            }
-        }
+    /// Saves configuration to the default location
+    ///
+    /// # Returns
+    ///
+    /// Returns Ok on success or an error message
+    pub fn save(&self) -> Result<(), String> {
+        // TODO: Implement actual config saving
+        Ok(())
+    }
 
-        #[cfg(target_os = "macos")]
-        {
-            if let Some(home) = dirs_next::home_dir() {
-                return Ok(
-                    home.join("Library/Application Support/com.example.jarvis/mcp-config.json")
-                );
-            }
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            if let Some(app_data) = dirs_next::data_dir() {
-                return Ok(app_data.join("jarvis/mcp-config.json"));
-            }
-        }
-
-        Err("Could not determine config path".to_string())
+    /// Gets a specific server configuration by name
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of the server
+    ///
+    /// # Returns
+    ///
+    /// Returns the server configuration if found
+    pub fn get_server(&self, name: &str) -> Option<&ServerConfig> {
+        self.servers.get(name)
     }
 }
 
-/// Configuration for a single MCP server
+/// Configuration for a specific MCP server
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
-    /// Server name (identifier)
-    pub name: String,
-    /// Transport type (stdio, http, websocket)
-    pub transport: TransportType,
+    /// Type of server transport
+    #[serde(rename = "type")]
+    pub server_type: ServerType,
+
+    /// Command to run (for stdio servers)
+    pub command: Option<String>,
+
+    /// Arguments for the command
+    pub args: Option<Vec<String>>,
+
+    /// URL for HTTP/WebSocket servers
+    pub url: Option<String>,
+
+    /// Environment variables
+    pub env: Option<HashMap<String, String>>,
+
     /// Whether the server is enabled
-    #[serde(default = "default_enabled")]
+    #[serde(default = "default_true")]
     pub enabled: bool,
-    /// Server-specific settings
-    #[serde(flatten)]
-    pub settings: ServerSettings,
 }
 
-fn default_enabled() -> bool {
+fn default_true() -> bool {
     true
 }
 
-/// Transport type for MCP communication
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Type of MCP server transport
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum TransportType {
-    /// Standard input/output
+pub enum ServerType {
+    /// Standard I/O based communication
     Stdio,
-    /// HTTP/HTTPS
+
+    /// HTTP-based communication
     Http,
-    /// WebSocket
+
+    /// WebSocket-based communication
     WebSocket,
 }
 
-/// Server-specific settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ServerSettings {
-    /// Settings for stdio transport
-    Stdio {
-        /// Command to execute
-        command: String,
-        /// Command arguments
-        #[serde(default)]
-        args: Vec<String>,
-        /// Environment variables
-        #[serde(default)]
-        env: std::collections::HashMap<String, String>,
-    },
-    /// Settings for HTTP transport
-    Http {
-        /// Server URL
-        url: String,
-        /// Authentication settings
-        #[serde(skip_serializing_if = "Option::is_none")]
-        auth: Option<AuthConfig>,
-    },
-}
-
-/// Authentication configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthConfig {
-    /// Authentication type (bearer, basic, etc.)
-    #[serde(rename = "type")]
-    pub auth_type: String,
-    /// Authentication token
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub token: Option<String>,
-}
-
-/// Security configuration
+/// Security configuration for MCP operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {
-    /// Allow dangerous tools
-    #[serde(default)]
-    pub allow_dangerous_tools: bool,
-    /// Require user confirmation for tool execution
-    #[serde(default = "default_require_confirmation")]
-    pub require_confirmation: bool,
-    /// Allowed directories for file operations
-    #[serde(default)]
-    pub allowed_directories: Vec<PathBuf>,
-}
+    /// Whether to allow file system access
+    #[serde(default = "default_false")]
+    pub allow_file_system_access: bool,
 
-fn default_require_confirmation() -> bool {
-    true
+    /// Allowed file system paths
+    #[serde(default)]
+    pub allowed_paths: Vec<String>,
+
+    /// Whether to require user confirmation for operations
+    #[serde(default = "default_true")]
+    pub require_confirmation: bool,
+
+    /// Confirmation threshold level
+    #[serde(default)]
+    pub confirmation_threshold: ConfirmationLevel,
 }
 
 impl Default for SecurityConfig {
     fn default() -> Self {
         Self {
-            allow_dangerous_tools: false,
+            allow_file_system_access: false,
+            allowed_paths: Vec::new(),
             require_confirmation: true,
-            allowed_directories: Vec::new(),
+            confirmation_threshold: ConfirmationLevel::Medium,
         }
+    }
+}
+
+fn default_false() -> bool {
+    false
+}
+
+/// Level of confirmation required for operations
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ConfirmationLevel {
+    /// No confirmation required
+    None,
+
+    /// Confirmation for low-risk operations
+    Low,
+
+    /// Confirmation for medium-risk operations (default)
+    #[default]
+    Medium,
+
+    /// Confirmation for all operations
+    High,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_config() {
+        let config = McpConfig::default();
+        assert!(config.servers.is_empty());
+        assert!(config.security.require_confirmation);
+    }
+
+    #[test]
+    fn test_server_config_serialization() {
+        let server = ServerConfig {
+            server_type: ServerType::Stdio,
+            command: Some("npx".to_string()),
+            args: Some(vec!["-y".to_string(), "mcp-server".to_string()]),
+            url: None,
+            env: None,
+            enabled: true,
+        };
+
+        let json = serde_json::to_string(&server).unwrap();
+        let deserialized: ServerConfig = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(server.server_type, deserialized.server_type);
+        assert_eq!(server.command, deserialized.command);
     }
 }

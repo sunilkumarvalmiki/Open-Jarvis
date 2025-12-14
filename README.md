@@ -2,196 +2,196 @@
 
 An intelligent, privacy-first desktop AI assistant built with Rust and Tauri.
 
-## Features
+## 🌟 Features
 
-- 🎤 **Voice-controlled AI interactions**: Control your computer with natural language
-- 🔒 **Privacy-first**: All processing can run locally - your data stays on your machine
-- ⚡ **Native performance**: Built with Rust for blazing-fast performance
-- 🔌 **Extensible via MCP**: Model Context Protocol enables powerful integrations
-- 🌐 **Cross-platform**: Works on Windows, macOS, and Linux
+- 🎤 **Voice-controlled AI interactions** - Natural language commands for seamless interaction
+- 🔒 **Privacy-first** - All processing can run locally, your data stays with you
+- ⚡ **Native performance** - Built with Rust for blazing-fast execution
+- 🔌 **Extensible via MCP** - Model Context Protocol support for unlimited capabilities
+- 🌐 **Cross-platform** - Works on Windows, macOS, and Linux
+- 🤖 **Smart automation** - File organization, system management, and more
 
-## Current Capabilities
-
-Open-Jarvis currently provides the following automation features:
-
-- **Web Navigation**: Open websites and URLs directly from voice commands
-- **System Maintenance**: Empty recycle bin/trash with a single command
-- **File Organization**: Automatically organize downloads folder by file type
-
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Open-Jarvis UI                       │
-│                  (HTML/CSS/JavaScript)                  │
+│                   Open-Jarvis Desktop UI                │
+│                   (HTML/CSS/JavaScript)                 │
 └───────────────────────┬─────────────────────────────────┘
                         │
                         │ Tauri IPC
                         │
 ┌───────────────────────▼─────────────────────────────────┐
-│                  Tauri Runtime                          │
-│  ┌─────────────┬─────────────┬──────────────────────┐  │
-│  │   System    │    File     │   MCP Integration    │  │
-│  │  Commands   │  Manager    │   (Coming Soon)      │  │
-│  └─────────────┴─────────────┴──────────────────────┘  │
-│                    Rust Backend                         │
-└─────────────────────────────────────────────────────────┘
-                        │
+│                  Rust Backend (Tauri)                   │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  │
+│  │   Commands  │  │  MCP Client  │  │  System APIs  │  │
+│  │   Handler   │  │              │  │               │  │
+│  └─────────────┘  └──────────────┘  └───────────────┘  │
+└───────────────────────┬─────────────────────────────────┘
                         │
         ┌───────────────┼───────────────┐
         │               │               │
-    ┌───▼───┐      ┌───▼───┐      ┌───▼────┐
-    │  OS   │      │ File  │      │  MCP   │
-    │ APIs  │      │System │      │ Tools  │
-    └───────┘      └───────┘      └────────┘
+┌───────▼────────┐ ┌───▼────────┐ ┌───▼──────────┐
+│  MCP Tools     │ │  ai-context│ │   polynote   │
+│  (GitHub, FS)  │ │  -manager  │ │              │
+└────────────────┘ └────────────┘ └──────────────┘
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Rust** 1.75 or higher ([install from rustup.rs](https://rustup.rs/))
-- **Node.js** 20 or higher ([install from nodejs.org](https://nodejs.org/))
-- Platform-specific dependencies:
-  - **Linux**: `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf`
-  - **macOS**: Xcode Command Line Tools
-  - **Windows**: Microsoft Visual C++ Build Tools
+- **Rust** 1.75+ ([Install Rust](https://rustup.rs/))
+- **Node.js** 20+ ([Install Node.js](https://nodejs.org/))
+- **npm** or **pnpm** (comes with Node.js)
+
+#### Platform-specific dependencies
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+```
+
+**macOS:**
+```bash
+# Xcode Command Line Tools required
+xcode-select --install
+```
+
+**Windows:**
+```bash
+# No additional dependencies required
+# Windows 10/11 with WebView2 (usually pre-installed)
+```
 
 ### Installation
 
-#### Linux (Ubuntu/Debian)
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/sunilkumarvalmiki/Open-Jarvis.git
+   cd Open-Jarvis
+   ```
 
-```bash
-# Install system dependencies
-sudo apt-get update
-sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+2. **Install frontend dependencies** (if package.json exists):
+   ```bash
+   npm install
+   # or
+   pnpm install
+   ```
 
-# Clone the repository
-git clone https://github.com/sunilkumarvalmiki/Open-Jarvis.git
-cd Open-Jarvis
-
-# Build and run
-cargo tauri dev --manifest-path src-tauri/Cargo.toml
-```
-
-#### macOS
-
-```bash
-# Clone the repository
-git clone https://github.com/sunilkumarvalmiki/Open-Jarvis.git
-cd Open-Jarvis
-
-# Build and run
-cargo tauri dev --manifest-path src-tauri/Cargo.toml
-```
-
-#### Windows
-
-```bash
-# Clone the repository
-git clone https://github.com/sunilkumarvalmiki/Open-Jarvis.git
-cd Open-Jarvis
-
-# Build and run
-cargo tauri dev --manifest-path src-tauri/Cargo.toml
-```
+3. **Build the application:**
+   ```bash
+   # Development mode
+   npm run tauri dev
+   
+   # Production build
+   npm run tauri build
+   ```
 
 ### Development
 
+#### Running in development mode
+
 ```bash
-# Run in development mode with hot-reload
-cargo tauri dev --manifest-path src-tauri/Cargo.toml
-
-# Build for production
-cargo tauri build --manifest-path src-tauri/Cargo.toml
-
-# Run tests
-cargo test --manifest-path src-tauri/Cargo.toml
-
-# Format code
-cargo fmt --manifest-path src-tauri/Cargo.toml
-
-# Lint code
-cargo clippy --manifest-path src-tauri/Cargo.toml
+cd src-tauri
+cargo tauri dev
 ```
 
-## MCP Integration
+This will start the Tauri application with hot-reload enabled.
 
-Open-Jarvis is designed to support the Model Context Protocol (MCP) for extensibility. MCP allows Open-Jarvis to:
+#### Building for production
 
-- Connect to external AI services and models
-- Access GitHub repositories and operations
-- Interact with file systems securely
-- Query databases and data sources
-- Integrate custom tools and workflows
+```bash
+cd src-tauri
+cargo tauri build
+```
 
-**Note**: MCP integration is currently under development. See [docs/mcp-integration.md](docs/mcp-integration.md) for the planned architecture.
+The compiled application will be available in `src-tauri/target/release`.
 
-## Cross-Project Integration
+#### Code formatting
 
-Open-Jarvis is part of a unified AI ecosystem designed to work seamlessly with:
+```bash
+cd src-tauri
+cargo fmt
+```
 
-- **[ai-context-manager](https://github.com/sunilkumarvalmiki/ai-context-manager)**: Retrieval-Augmented Generation (RAG) and knowledge retrieval system
-- **[polynote](https://github.com/sunilkumarvalmiki/polynote)**: Knowledge management and note-taking application
+#### Linting
 
-Together, these projects create a comprehensive AI-powered productivity environment where:
-- Open-Jarvis serves as the primary user interface and orchestrator
-- ai-context-manager provides intelligent context and knowledge retrieval
-- polynote manages and organizes your knowledge base
+```bash
+cd src-tauri
+cargo clippy -- -D warnings
+```
 
-## Configuration
+#### Testing
 
-Configuration files will be stored in platform-specific directories:
+```bash
+cd src-tauri
+cargo test
+```
 
-- **Linux**: `~/.config/jarvis/config.json`
-- **macOS**: `~/Library/Application Support/com.example.jarvis/config.json`
-- **Windows**: `%APPDATA%\jarvis\config.json`
+## 🔌 MCP Integration
 
-### Environment Variables
+Open-Jarvis supports the Model Context Protocol (MCP) for extensibility, allowing you to connect various tools and services:
 
-- `JARVIS_LOG_LEVEL`: Set logging level (trace, debug, info, warn, error)
-- `JARVIS_CONFIG_PATH`: Override default configuration path
+- **GitHub operations** - Repository management, issue tracking, pull requests
+- **File system access** - Smart file organization and management
+- **Database queries** - Connect to databases for data retrieval
+- **Custom tool integration** - Build your own MCP tools
 
-## Contributing
+See [docs/mcp-integration.md](docs/mcp-integration.md) for detailed integration guide.
+
+## 🌐 Cross-Project Integration
+
+Open-Jarvis is part of a unified AI ecosystem:
+
+- **[ai-context-manager](https://github.com/sunilkumarvalmiki/ai-context-manager)** - RAG and knowledge retrieval system
+- **[polynote](https://github.com/sunilkumarvalmiki/polynote)** - Knowledge management and note-taking
+
+These projects work together to provide a comprehensive AI-assisted workflow.
+
+## ⚙️ Configuration
+
+Configuration is managed through environment variables and config files:
+
+```bash
+# Example .env file
+JARVIS_MODEL=gpt-4
+JARVIS_API_KEY=your_api_key_here
+MCP_SERVER_URL=http://localhost:3000
+```
+
+See [docs/architecture.md](docs/architecture.md) for detailed configuration options.
+
+## 🤝 Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 
 - Code style and conventions
-- Development workflow
+- Git workflow
 - Testing requirements
 - Pull request process
 
-## Architecture Documentation
-
-For detailed architecture information, see:
-
-- [Architecture Overview](docs/architecture.md)
-- [MCP Integration Guide](docs/mcp-integration.md)
-
-## License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Roadmap
+## 🙏 Acknowledgments
 
-- [x] Basic desktop application with system commands
-- [x] File organization capabilities
-- [ ] MCP integration framework
-- [ ] Voice control interface
-- [ ] Integration with ai-context-manager
-- [ ] Integration with polynote
-- [ ] Plugin system for custom commands
-- [ ] Natural language command parsing
-- [ ] Multi-language support
+- Built with [Tauri](https://tauri.app/)
+- Powered by [Rust](https://www.rust-lang.org/)
+- MCP support via [Model Context Protocol](https://modelcontextprotocol.io/)
 
-## Support
+## 📚 Documentation
 
-- 🐛 **Bug reports**: [Open an issue](https://github.com/sunilkumarvalmiki/Open-Jarvis/issues/new?template=bug_report.yml)
-- 💡 **Feature requests**: [Open an issue](https://github.com/sunilkumarvalmiki/Open-Jarvis/issues/new?template=feature_request.yml)
-- 💬 **Questions**: [Start a discussion](https://github.com/sunilkumarvalmiki/Open-Jarvis/discussions)
+- [Architecture Overview](docs/architecture.md)
+- [MCP Integration Guide](docs/mcp-integration.md)
+- [API Reference](docs/api-reference.md)
 
-## Acknowledgments
+## 🐛 Issues & Support
 
-Built with:
-- [Tauri](https://tauri.app/) - Build smaller, faster, and more secure desktop applications
-- [Rust](https://www.rust-lang.org/) - A language empowering everyone to build reliable and efficient software
+Found a bug or need help? Please [open an issue](https://github.com/sunilkumarvalmiki/Open-Jarvis/issues).
+
+---
+
+Made with ❤️ by the Open-Jarvis team

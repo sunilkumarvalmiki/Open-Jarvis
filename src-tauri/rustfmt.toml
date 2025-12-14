@@ -1,0 +1,29 @@
+# Rust formatting configuration for Open-Jarvis
+
+# Maximum line width
+max_width = 100
+
+# Number of spaces per tab
+tab_spaces = 4
+
+# Use spaces instead of tabs
+hard_tabs = false
+
+# Use field init shorthand
+use_field_init_shorthand = true
+
+# Newline style
+newline_style = "Unix"
+
+# Edition
+edition = "2021"
+
+# Reorder imports
+reorder_imports = true
+
+# Reorder modules
+reorder_modules = true
+
+# Match block trailing comma
+match_block_trailing_comma = true
+

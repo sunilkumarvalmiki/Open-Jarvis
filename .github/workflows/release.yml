@@ -3,17 +3,16 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., v1.0.0)'
+        description: 'Release version (e.g., v1.0.0)'
         required: true
         type: string
 
-env:
-  RUST_BACKTRACE: 1
-  CARGO_TERM_COLOR: always
+permissions:
+  contents: write
 
 jobs:
   create-release:
@@ -23,6 +22,9 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
       - name: Get version
         id: get_version
         run: |
@@ -31,7 +33,7 @@ jobs:
           else
             echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
-
+      
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -39,75 +41,99 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.get_version.outputs.version }}
-          release_name: Release ${{ steps.get_version.outputs.version }}
-          draft: true
-          prerelease: false
+          release_name: Open-Jarvis ${{ steps.get_version.outputs.version }}
           body: |
             ## What's Changed
-
-            <!-- Add release notes here -->
-
-            ## Installation
-
-            Download the appropriate installer for your platform below.
-
-            ### Supported Platforms
-            - Windows (x64)
-            - macOS (Intel & Apple Silicon)
-            - Linux (x64)
+            
+            See the [CHANGELOG](https://github.com/sunilkumarvalmiki/Open-Jarvis/blob/main/CHANGELOG.md) for details.
+            
+            ## Downloads
+            
+            Download the appropriate binary for your platform below.
+            
+            ### Installation
+            
+            #### Windows
+            - Download `Open-Jarvis-windows-x86_64.msi`
+            - Run the installer
+            
+            #### macOS
+            - Download `Open-Jarvis-macos-universal.dmg`
+            - Open the DMG and drag to Applications
+            
+            #### Linux
+            - Download the appropriate package for your distribution:
+              - Debian/Ubuntu: `Open-Jarvis-linux-amd64.deb`
+              - RedHat/Fedora: `Open-Jarvis-linux-x86_64.rpm`
+              - AppImage: `Open-Jarvis-linux-x86_64.AppImage`
+          draft: false
+          prerelease: false
 
   build-release:
-    name: Build Release for ${{ matrix.platform }}
+    name: Build Release (${{ matrix.platform.name }})
     needs: create-release
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: ubuntu-latest
+        platform:
+          - name: Linux (x86_64)
+            os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: jarvis
-            artifact_ext: ''
-          - platform: macos-latest
+            ext: ''
+          - name: macOS (Intel)
+            os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: jarvis
-            artifact_ext: ''
-          - platform: windows-latest
+            ext: ''
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ''
+          - name: Windows (x86_64)
+            os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: jarvis
-            artifact_ext: '.exe'
-
-    runs-on: ${{ matrix.platform }}
-
+            ext: .exe
+    runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Rust toolchain
+      
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-
+          targets: ${{ matrix.platform.target }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+      
       - name: Install dependencies (Ubuntu)
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Build and package
+      
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: src-tauri
           tagName: ${{ needs.create-release.outputs.version }}
           releaseName: 'Open-Jarvis ${{ needs.create-release.outputs.version }}'
-          releaseBody: 'See the release notes for details.'
-          releaseDraft: true
+          releaseBody: 'See the assets below to download this version.'
+          releaseDraft: false
           prerelease: false
-          includeDebug: false
-          includeRelease: true
+          args: --target ${{ matrix.platform.target }}
+
+  publish-release:
+    name: Publish Release
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Publish Release
+        run: |
+          echo "Release published: ${{ needs.create-release.outputs.version }}"
+          echo "All platform builds completed successfully!"

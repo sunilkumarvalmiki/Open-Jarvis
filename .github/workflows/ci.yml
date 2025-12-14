@@ -8,139 +8,147 @@ on:
 
 env:
   RUST_BACKTRACE: 1
-  CARGO_TERM_COLOR: always
 
 jobs:
   check:
-    name: Check, Format, and Lint
+    name: Check and Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Rust toolchain
+      
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+      
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
+      
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
+      
       - name: Cache cargo index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-index-
-
+      
       - name: Cache cargo build
         uses: actions/cache@v4
         with:
           path: src-tauri/target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-target-
-
-      - name: Check Rust formatting
+      
+      - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-
+      
       - name: Run Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
-
+      
+      - name: Build Rust
+        run: cargo build --manifest-path src-tauri/Cargo.toml --verbose
+      
       - name: Run tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --all-features
+        run: cargo test --manifest-path src-tauri/Cargo.toml --verbose
 
   build:
-    name: Build on ${{ matrix.platform }}
+    name: Build (${{ matrix.platform }})
     needs: check
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: ubuntu-latest
+        platform:
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - platform: macos-latest
+          - os: macos-latest
             target: x86_64-apple-darwin
-          - platform: windows-latest
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
             target: x86_64-pc-windows-msvc
-
-    runs-on: ${{ matrix.platform }}
-
+    runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Rust toolchain
+      
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-
+          targets: ${{ matrix.platform.target }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+      
       - name: Install dependencies (Ubuntu)
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Cache cargo (Ubuntu)
-        if: matrix.platform == 'ubuntu-latest'
+      
+      - name: Cache cargo (Unix)
+        if: matrix.platform.os != 'windows-latest'
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Cache cargo (macOS)
-        if: matrix.platform == 'macos-latest'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
       - name: Cache cargo (Windows)
-        if: matrix.platform == 'windows-latest'
+        if: matrix.platform.os == 'windows-latest'
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
+            ~\.cargo\registry
+            ~\.cargo\git
+            src-tauri\target
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd src-tauri
+          cargo build --release --target ${{ matrix.platform.target }}
+      
+      - name: Upload artifacts (Unix)
+        if: matrix.platform.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
         with:
-          projectPath: src-tauri
+          name: jarvis-${{ matrix.platform.target }}
+          path: src-tauri/target/${{ matrix.platform.target }}/release/jarvis-tauri
+      
+      - name: Upload artifacts (Windows)
+        if: matrix.platform.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-${{ matrix.platform.target }}
+          path: src-tauri/target/${{ matrix.platform.target }}/release/jarvis-tauri.exe
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Run security audit
+        run: cargo audit --file src-tauri/Cargo.lock

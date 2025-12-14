@@ -1,388 +1,427 @@
-# Open-Jarvis Architecture
+# Architecture Overview
 
-This document provides a comprehensive overview of the Open-Jarvis architecture, system components, data flow, and integration points.
+This document provides a comprehensive overview of the Open-Jarvis architecture, including system design, component interactions, and security considerations.
 
 ## Table of Contents
 
-1. [System Overview](#system-overview)
-2. [Component Architecture](#component-architecture)
-3. [Data Flow](#data-flow)
-4. [MCP Integration Points](#mcp-integration-points)
-5. [Security Model](#security-model)
-6. [Cross-Project Integration](#cross-project-integration)
-7. [Future Architecture](#future-architecture)
+- [System Overview](#system-overview)
+- [Component Architecture](#component-architecture)
+- [Data Flow](#data-flow)
+- [MCP Integration Points](#mcp-integration-points)
+- [Security Model](#security-model)
+- [Technology Stack](#technology-stack)
 
 ## System Overview
 
-Open-Jarvis is built as a desktop application using the Tauri framework, which combines a Rust backend with a web-based frontend. This architecture provides:
-
-- **Performance**: Rust's zero-cost abstractions and memory safety
-- **Security**: Tauri's security-first approach with minimal attack surface
-- **Cross-platform**: Single codebase for Windows, macOS, and Linux
-- **Small footprint**: Significantly smaller than Electron-based alternatives
+Open-Jarvis is a desktop AI assistant built using the Tauri framework, combining a Rust backend with a web-based frontend. The application leverages the Model Context Protocol (MCP) for extensibility and integration with external tools and services.
 
 ### High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User Interface                          │
-│                     (HTML/CSS/JavaScript)                       │
-│  ┌─────────────┬─────────────┬──────────────────────────────┐  │
-│  │   Action    │   Status    │      Configuration UI        │  │
-│  │   Cards     │  Display    │                              │  │
-│  └─────────────┴─────────────┴──────────────────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               │ Tauri IPC (JSON-RPC)
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                         Tauri Runtime                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Command Handlers                      │  │
-│  │  - open_browser()  - empty_recycle_bin()               │  │
-│  │  - organize_files() - [future commands]                  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                   Business Logic Layer                   │  │
-│  │  ┌────────────┬──────────────┬─────────────────────────┐ │  │
-│  │  │  System    │     File     │    MCP Integration      │ │  │
-│  │  │  Commands  │   Manager    │    (Coming Soon)        │ │  │
-│  │  └────────────┴──────────────┴─────────────────────────┘ │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                        Rust Backend                             │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               │ Platform APIs
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                      Operating System                           │
-│  ┌──────────────┬──────────────┬────────────────────────────┐  │
-│  │   Shell      │  File System │    Process Management      │  │
-│  │   APIs       │              │                            │  │
-│  └──────────────┴──────────────┴────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      User Interface Layer                   │
+│                    (HTML/CSS/JavaScript)                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Voice Input │  │   Commands   │  │    Status    │      │
+│  │   Interface  │  │   Dashboard  │  │   Display    │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                    Tauri IPC Bridge
+                             │
+┌────────────────────────────▼────────────────────────────────┐
+│                    Application Core (Rust)                  │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              Command Handler Layer                  │    │
+│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  │    │
+│  │  │    Browser   │  │    File     │  │  System  │  │    │
+│  │  │   Commands   │  │ Organization│  │ Commands │  │    │
+│  │  └──────────────┘  └─────────────┘  └──────────┘  │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              MCP Integration Layer                  │    │
+│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  │    │
+│  │  │  MCP Client  │  │    Tools    │  │  Config  │  │    │
+│  │  │   Manager    │  │   Registry  │  │  Manager │  │    │
+│  │  └──────────────┘  └─────────────┘  └──────────┘  │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              System Interface Layer                 │    │
+│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  │    │
+│  │  │ File System  │  │   Process   │  │ Network  │  │    │
+│  │  │    APIs      │  │  Management │  │   APIs   │  │    │
+│  │  └──────────────┘  └─────────────┘  └──────────┘  │    │
+│  └────────────────────────────────────────────────────┘    │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+┌───────▼────────┐  ┌─────▼──────┐  ┌──────▼─────────┐
+│  External MCP  │  │ ai-context │  │   polynote     │
+│     Tools      │  │  -manager  │  │  Knowledge DB  │
+│ (GitHub, etc.) │  │   (RAG)    │  │                │
+└────────────────┘  └────────────┘  └────────────────┘
 ```
 
 ## Component Architecture
 
-### Frontend Layer
+### 1. User Interface Layer
 
-**Technology**: HTML, CSS, JavaScript
+**Technology**: HTML5, CSS3, JavaScript (Vanilla)
 
 **Responsibilities**:
-- User interface rendering
-- Event handling
-- Communication with Rust backend via Tauri IPC
-- State management for UI components
+- Render user interface
+- Capture user input (voice, clicks, keyboard)
+- Display command results and status updates
+- Provide visual feedback for operations
 
 **Key Files**:
-- `src/index.html` - Main application HTML
-- `src/style.css` - Application styling
-- `src/main.js` - Frontend logic and IPC calls
+- `src/index.html` - Main UI structure
+- `src/main.js` - Event handlers and Tauri IPC calls
+- `src/style.css` - UI styling
 
-### Tauri Runtime
+### 2. Application Core (Rust)
 
-**Technology**: Rust + Tauri framework
-
-**Responsibilities**:
-- Bridge between frontend and backend
-- Window management
-- Security boundary enforcement
-- IPC message routing
-
-**Key Features**:
-- Type-safe communication using `#[tauri::command]` macro
-- Async/await support for non-blocking operations
-- Scoped shell execution for security
-
-### Backend Layer
-
-**Technology**: Rust
+**Technology**: Rust, Tauri Framework
 
 **Responsibilities**:
-- Business logic implementation
-- System integration
-- File operations
-- Command execution
-- Future: MCP protocol handling
+- Handle IPC communication from frontend
+- Execute system commands
+- Manage application state
+- Coordinate MCP integrations
+- Handle errors and provide feedback
 
-**Current Modules**:
+**Key Modules**:
+- `main.rs` - Application entry point and Tauri setup
+- Command handlers (`#[tauri::command]` functions)
+- MCP integration module (future)
 
-#### System Commands Module
-```rust
-// Functions for system-level operations
-- open_browser() - Opens URLs in default browser
-- empty_recycle_bin() - Clears system trash/recycle bin
-- organize_files() - Organizes files by type
-```
+### 3. Command Handler Layer
 
-**Platforms Supported**:
-- Windows: PowerShell commands
-- macOS: Unix commands
-- Linux: Unix commands
+Implements specific functionality exposed to the frontend:
 
-#### File Manager Module
-```rust
-// File system operations
-- organize_impl() - Core file organization logic
-- File type detection
-- Directory creation
-- File movement operations
-```
+#### Browser Commands
+- `open_browser(url)` - Opens URLs in default browser
+- Uses async execution to prevent UI blocking
 
-#### MCP Module (Planned)
-```rust
-// Model Context Protocol integration
-- mcp/client.rs - MCP client implementation
-- mcp/tools.rs - MCP tool definitions
-- mcp/config.rs - MCP configuration
-```
+#### File Organization
+- `organize_files()` - Organizes downloads folder by file type
+- Creates categorized folders (Documents, Music, Pictures)
+- Moves files based on extensions
+
+#### System Commands
+- `empty_recycle_bin()` - Clears system trash/recycle bin
+- Platform-specific implementations (Windows, macOS, Linux)
+
+### 4. MCP Integration Layer
+
+**Status**: In Development
+
+**Purpose**: Enable extensibility through Model Context Protocol
+
+**Components**:
+- **MCP Client**: Manages connections to MCP servers
+- **Tools Registry**: Registers and manages available tools
+- **Config Manager**: Handles MCP configuration
+
+See [MCP Integration](./mcp-integration.md) for details.
+
+### 5. System Interface Layer
+
+**Platform Abstraction**: Provides cross-platform system access
+
+**Capabilities**:
+- File system operations (read, write, organize)
+- Process management (execute commands)
+- Network operations (HTTP requests, WebSocket)
+- OS-specific features (clipboard, notifications)
 
 ## Data Flow
 
 ### Command Execution Flow
 
 ```
-User Action → Frontend Event → Tauri IPC → Command Handler → 
-Business Logic → System API → Result → IPC Response → UI Update
+User Action (Click/Voice)
+    │
+    ▼
+Frontend Event Handler (main.js)
+    │
+    ▼
+Tauri IPC Call (invoke)
+    │
+    ▼
+Rust Command Handler (#[tauri::command])
+    │
+    ├─► Async Task Spawn
+    │   │
+    │   ▼
+    │   Platform-Specific Implementation
+    │   │
+    │   ▼
+    │   System API Call
+    │   │
+    │   ▼
+    │   Result/Error
+    │
+    ▼
+Response to Frontend
+    │
+    ▼
+UI Update/Notification
 ```
 
-### Detailed Example: File Organization
+### MCP Integration Flow (Planned)
 
-1. **User Interaction**
-   - User clicks "Organize Downloads" button in UI
-   
-2. **Frontend Event**
-   ```javascript
-   document.getElementById('organize-files').addEventListener('click', async () => {
-     await invoke('organize_files');
-   });
-   ```
-
-3. **IPC Communication**
-   - Tauri serializes the command to JSON-RPC
-   - Message sent to Rust backend
-
-4. **Command Handler**
-   ```rust
-   #[tauri::command]
-   fn organize_files() -> Result<(), String> {
-     // Async spawn to avoid blocking
-     tauri::async_runtime::spawn(async move {
-       if let Some(home) = dirs_next::download_dir() {
-         organize_impl(&home).ok();
-       }
-     });
-     Ok(())
-   }
-   ```
-
-5. **Business Logic**
-   - Retrieve downloads directory path
-   - Create target directories (Documents, Music, Pictures)
-   - Scan files in downloads
-   - Move files based on extension
-
-6. **System Interaction**
-   - File system APIs (`fs::read_dir`, `fs::rename`)
-   - Directory creation (`fs::create_dir_all`)
-
-7. **Response**
-   - Success/error propagated back through IPC
-   - UI updated accordingly
+```
+Command Request
+    │
+    ▼
+MCP Client
+    │
+    ├─► Tool Lookup
+    │   │
+    │   ▼
+    │   Tool Selection
+    │   │
+    │   ▼
+    │   Parameter Preparation
+    │
+    ▼
+MCP Server Communication
+    │
+    ├─► Request Serialization
+    │   │
+    │   ▼
+    │   Network Transport
+    │   │
+    │   ▼
+    │   Response Deserialization
+    │
+    ▼
+Result Processing
+    │
+    ▼
+Return to Command Handler
+```
 
 ## MCP Integration Points
 
-### Planned MCP Architecture
+### Current Integration Points
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Open-Jarvis                          │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │              MCP Client                          │  │
-│  │  - Connection management                         │  │
-│  │  - Request/response handling                     │  │
-│  │  - Tool discovery                                │  │
-│  └────────────────────┬─────────────────────────────┘  │
-└────────────────────────┼────────────────────────────────┘
-                         │
-                         │ JSON-RPC over stdio/HTTP
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-    ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
-    │ GitHub  │    │  File   │    │ Custom  │
-    │  MCP    │    │ System  │    │  Tools  │
-    │ Server  │    │  MCP    │    │   MCP   │
-    └─────────┘    └─────────┘    └─────────┘
-```
+1. **File System Operations**
+   - Directory organization
+   - File management
+   - Path resolution
 
-### Integration Capabilities (Planned)
+2. **Browser Automation**
+   - URL opening
+   - Web navigation
 
-1. **GitHub Integration**
-   - Repository operations
-   - Issue management
-   - Pull request workflows
+3. **System Management**
+   - Recycle bin operations
+   - Process execution
 
-2. **File System Integration**
-   - Enhanced file operations
-   - Search capabilities
-   - Version control integration
+### Planned Integration Points
 
-3. **Database Integration**
-   - Query execution
-   - Data retrieval
-   - Schema inspection
+1. **GitHub Operations**
+   - Repository management
+   - Issue tracking
+   - Pull request automation
 
-4. **Custom Tool Integration**
-   - User-defined tools
+2. **AI Context Manager**
+   - Knowledge retrieval (RAG)
+   - Context injection
+   - Semantic search
+
+3. **Polynote Integration**
+   - Note management
+   - Knowledge graph
+   - Cross-referencing
+
+4. **Custom Tools**
+   - User-defined MCP tools
    - Plugin system
-   - Extensible command set
+   - Extension marketplace
 
 ## Security Model
 
 ### Security Principles
 
-1. **Least Privilege**: Commands execute with user permissions only
-2. **Explicit Consent**: No automatic execution without user action
-3. **Scope Limitation**: Shell commands use Tauri's scoped execution
-4. **Input Validation**: All user inputs are validated
-5. **Memory Safety**: Rust's ownership system prevents common vulnerabilities
+1. **Principle of Least Privilege**: Commands run with minimal required permissions
+2. **User Confirmation**: Destructive operations require explicit user approval
+3. **Sandboxing**: Tauri's security model provides process isolation
+4. **Data Privacy**: No data transmitted without user consent
 
-### Security Boundaries
+### Security Layers
 
-```
-┌─────────────────────────────────────────┐
-│         Untrusted Zone                  │
-│      (Frontend JavaScript)              │
-│  - User input                           │
-│  - UI interactions                      │
-└──────────────────┬──────────────────────┘
-                   │
-                   │ Tauri IPC (Validated)
-                   │
-┌──────────────────▼──────────────────────┐
-│          Trusted Zone                   │
-│       (Rust Backend)                    │
-│  - Type-safe command handlers           │
-│  - Validated business logic             │
-│  - Controlled system access             │
-└──────────────────┬──────────────────────┘
-                   │
-                   │ OS APIs (Scoped)
-                   │
-┌──────────────────▼──────────────────────┐
-│      Operating System                   │
-└─────────────────────────────────────────┘
-```
+#### 1. Tauri Security
 
-### Security Features
+- **CSP (Content Security Policy)**: Restricts resource loading
+- **IPC Allowlist**: Only explicitly registered commands are callable
+- **Process Isolation**: Frontend and backend run in separate processes
 
-- **Command Allowlisting**: Only explicitly defined commands can be invoked
-- **Type Safety**: Rust's type system prevents injection attacks
-- **Async Execution**: Commands run in isolated async tasks
-- **Error Handling**: All errors are caught and logged safely
-- **No Eval**: No dynamic code execution in frontend or backend
+#### 2. Rust Memory Safety
 
-## Cross-Project Integration
+- **No Buffer Overflows**: Rust's ownership system prevents memory corruption
+- **Safe Concurrency**: Type system prevents data races
+- **Error Handling**: Explicit error handling (Result types)
 
-### Ecosystem Architecture
+#### 3. Platform Security
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    User Layer                           │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        │
-┌───────────────────────▼─────────────────────────────────┐
-│                   Open-Jarvis                           │
-│              (Orchestration Layer)                      │
-│  - User interface                                       │
-│  - Command processing                                   │
-│  - Cross-project coordination                           │
-└────────┬─────────────────────────────┬──────────────────┘
-         │                             │
-         │ MCP                         │ MCP
-         │                             │
-┌────────▼──────────────┐    ┌────────▼─────────────────┐
-│  ai-context-manager   │    │      polynote            │
-│                       │    │                          │
-│  - RAG system         │    │  - Knowledge base        │
-│  - Vector search      │    │  - Note management       │
-│  - Context retrieval  │    │  - Document storage      │
-└───────────────────────┘    └──────────────────────────┘
-```
+- **Sandboxed File Access**: Limited to user-approved directories
+- **System API Restrictions**: Uses platform security mechanisms
+- **Credential Management**: Secure storage for API keys
 
-### Integration Workflows
+### Threat Model
 
-#### Knowledge Retrieval Workflow
-1. User asks question via Open-Jarvis
-2. Open-Jarvis sends query to ai-context-manager via MCP
-3. ai-context-manager performs RAG search
-4. Results returned and displayed in Open-Jarvis UI
+**Threats Mitigated**:
+- ✅ Arbitrary code execution from frontend
+- ✅ Unauthorized file system access
+- ✅ Memory corruption vulnerabilities
+- ✅ Cross-site scripting (XSS)
 
-#### Note Management Workflow
-1. User requests note creation via Open-Jarvis
-2. Open-Jarvis communicates with polynote via MCP
-3. Note created and indexed
-4. Confirmation returned to user
+**Ongoing Considerations**:
+- ⚠️ Supply chain security (dependency auditing)
+- ⚠️ Network-based attacks (when MCP integration is active)
+- ⚠️ Social engineering (user-initiated destructive commands)
 
-## Future Architecture
+### Security Best Practices
+
+1. **Dependency Auditing**:
+   ```bash
+   cargo audit
+   ```
+
+2. **Code Scanning**:
+   - GitHub Dependabot
+   - Clippy security lints
+   - Manual security reviews
+
+3. **Update Policy**:
+   - Regular dependency updates
+   - Security patch priority
+   - Version pinning for stability
+
+## Technology Stack
+
+### Backend (Rust)
+
+- **Tauri 1.x**: Desktop application framework
+- **tokio**: Async runtime
+- **serde**: Serialization/deserialization
+- **dirs-next**: Platform-agnostic directory access
+
+### Frontend
+
+- **HTML5**: Markup
+- **CSS3**: Styling
+- **Vanilla JavaScript**: Logic (no framework dependencies)
+- **Tauri API**: Bridge to Rust backend
+
+### Development Tools
+
+- **rustfmt**: Code formatting
+- **clippy**: Linting and best practices
+- **cargo**: Build system and package manager
+- **GitHub Actions**: CI/CD
+
+### Future Additions
+
+- **MCP Client Library**: For protocol communication
+- **Speech Recognition**: For voice commands
+- **LLM Integration**: For natural language processing
+- **Database**: For persistent state (SQLite or similar)
+
+## Performance Considerations
+
+### Optimization Strategies
+
+1. **Async Execution**: Non-blocking operations for UI responsiveness
+2. **Lazy Loading**: Load components on demand
+3. **Caching**: Cache frequently accessed data
+4. **Batch Operations**: Group similar operations
+
+### Resource Management
+
+- **Memory**: Rust's ownership system provides automatic memory management
+- **CPU**: Background tasks for heavy computations
+- **Disk I/O**: Async file operations
+- **Network**: Connection pooling for MCP communications
+
+## Scalability
+
+### Current Limitations
+
+- Single-user desktop application
+- Local processing only
+- Limited concurrent operations
+
+### Future Scalability
+
+- Multi-user configurations (enterprise)
+- Distributed MCP server architecture
+- Cloud-based AI model integration
+- Plugin ecosystem
+
+## Deployment
+
+### Distribution Methods
+
+1. **Platform-Specific Installers**:
+   - Windows: .msi, .exe
+   - macOS: .dmg, .app
+   - Linux: .deb, .rpm, AppImage
+
+2. **Auto-Update**:
+   - Tauri's built-in updater
+   - Version checking
+   - Delta updates
+
+3. **Package Managers**:
+   - Homebrew (macOS)
+   - Chocolatey (Windows)
+   - apt/yum (Linux)
+
+## Monitoring and Diagnostics
+
+### Logging
+
+- Structured logging with log levels
+- Rotation and retention policies
+- User-accessible log viewer
+
+### Error Reporting
+
+- Graceful error handling
+- User-friendly error messages
+- Optional error reporting (with user consent)
+
+### Metrics
+
+- Command execution times
+- Success/failure rates
+- Resource usage statistics
+
+## Future Architecture Evolution
 
 ### Planned Enhancements
 
-1. **Voice Interface**
-   - Speech-to-text integration
-   - Natural language processing
-   - Voice command routing
+1. **Voice Interface**: Speech-to-text and text-to-speech
+2. **AI Model Integration**: Local LLM support
+3. **Plugin System**: Third-party extensions
+4. **Cloud Sync**: Optional cloud backup and sync
+5. **Multi-Device**: Cross-device coordination
 
-2. **Plugin System**
-   - Dynamic plugin loading
-   - Plugin marketplace
-   - User-developed extensions
+### Research Areas
 
-3. **AI Model Integration**
-   - Local LLM support
-   - Cloud API integration
-   - Model switching capability
+- Edge AI models for offline capabilities
+- Federated learning for privacy-preserving model improvement
+- Advanced MCP tool marketplace
+- Integration with smart home systems
 
-4. **Advanced Automation**
-   - Workflow builder
-   - Scheduled tasks
-   - Event-driven automation
+---
 
-### Scalability Considerations
-
-- **Multi-threading**: Leverage Rust's concurrency for parallel operations
-- **Caching**: Implement intelligent caching for frequently accessed data
-- **Resource Management**: Monitor and limit resource usage
-- **Modular Design**: Keep components loosely coupled for easy extension
-
-## Technical Decisions
-
-### Why Tauri?
-
-- **Size**: ~600KB vs 50MB+ for Electron
-- **Performance**: Native Rust backend
-- **Security**: Smaller attack surface
-- **Memory**: More efficient than Chromium-based alternatives
-
-### Why Rust?
-
-- **Safety**: Memory safety without garbage collection
-- **Performance**: Zero-cost abstractions
-- **Concurrency**: Fearless concurrency model
-- **Ecosystem**: Rich ecosystem of libraries
-
-### Why MCP?
-
-- **Standardization**: Industry-standard protocol
-- **Flexibility**: Works with any MCP-compatible server
-- **Extensibility**: Easy to add new capabilities
-- **Interoperability**: Cross-project communication
-
-## Conclusion
-
-Open-Jarvis's architecture is designed to be secure, performant, and extensible. The combination of Tauri, Rust, and MCP provides a solid foundation for building a powerful AI assistant that can grow and adapt to user needs while maintaining privacy and security.
-
-For implementation details on MCP integration, see [MCP Integration Guide](mcp-integration.md).
+For questions or suggestions about the architecture, please open an issue or discussion on GitHub.

@@ -1,10 +1,28 @@
 # Rust formatting configuration for Open-Jarvis
-edition = "2024"
+
+# Maximum line width
 max_width = 100
+
+# Use hard tabs
 hard_tabs = false
 tab_spaces = 4
+
+# Edition
+edition = "2021"
+
+# Use field initialization shorthand
+use_field_init_shorthand = true
+
+# Use try shorthand
+use_try_shorthand = true
+
+# Newline style
 newline_style = "Unix"
-use_small_heuristics = "Default"
+
+# Reorder imports and modules
 reorder_imports = true
 reorder_modules = true
-remove_nested_parens = true
+
+# Merge derives
+merge_derives = true
+

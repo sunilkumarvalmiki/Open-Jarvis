@@ -1,7 +1,13 @@
-# Clippy linting configuration for Open-Jarvis
-# Enforce stricter linting for production-ready code
+# Clippy configuration for Open-Jarvis
+
+# Deny warnings in CI
+# Use: cargo clippy -- -D warnings
+
+# Allowed lints (use sparingly)
+# These are lints we explicitly allow in our codebase
 
 # Warn on common mistakes
-cognitive-complexity-threshold = 30
-type-complexity-threshold = 500
-too-many-arguments-threshold = 8
+# These will be warnings, not errors
+
+# Additional lints to check
+# Run with: cargo clippy -- -W clippy::pedantic
