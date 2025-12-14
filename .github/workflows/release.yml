@@ -5,9 +5,14 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
 
-env:
-  RUST_BACKTRACE: 1
+permissions:
+  contents: write
 
 jobs:
   create-release:
@@ -17,9 +22,17 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
-      - name: Get version from tag
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Get version
         id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
       
       - name: Create Release
         id: create_release
@@ -27,55 +40,67 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Open-Jarvis v${{ steps.get_version.outputs.version }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Open-Jarvis ${{ steps.get_version.outputs.version }}
           body: |
-            ## Changes in this Release
+            ## What's Changed
             
             See the [CHANGELOG](https://github.com/sunilkumarvalmiki/Open-Jarvis/blob/main/CHANGELOG.md) for details.
             
-            ## Installation
+            ## Downloads
             
-            Download the appropriate package for your platform below.
+            Download the appropriate binary for your platform below.
             
-            ### Checksums
+            ### Installation
             
-            SHA256 checksums will be provided for all artifacts.
+            #### Windows
+            - Download `Open-Jarvis-windows-x86_64.msi`
+            - Run the installer
+            
+            #### macOS
+            - Download `Open-Jarvis-macos-universal.dmg`
+            - Open the DMG and drag to Applications
+            
+            #### Linux
+            - Download the appropriate package for your distribution:
+              - Debian/Ubuntu: `Open-Jarvis-linux-amd64.deb`
+              - RedHat/Fedora: `Open-Jarvis-linux-x86_64.rpm`
+              - AppImage: `Open-Jarvis-linux-x86_64.AppImage`
+          draft: false
+          prerelease: false
 
   build-release:
-    name: Build Release - ${{ matrix.platform }}
+    name: Build Release (${{ matrix.platform.name }})
     needs: create-release
     strategy:
       fail-fast: false
       matrix:
         platform:
-          - os: ubuntu-latest
-            rust_target: x86_64-unknown-linux-gnu
-            artifact_name: open-jarvis
-            artifact_ext: .AppImage
-          - os: macos-latest
-            rust_target: x86_64-apple-darwin
-            artifact_name: open-jarvis
-            artifact_ext: .dmg
-          - os: macos-latest
-            rust_target: aarch64-apple-darwin
-            artifact_name: open-jarvis
-            artifact_ext: .dmg
-          - os: windows-latest
-            rust_target: x86_64-pc-windows-msvc
-            artifact_name: open-jarvis
-            artifact_ext: .msi
+          - name: Linux (x86_64)
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ''
+          - name: macOS (Intel)
+            os: macos-latest
+            target: x86_64-apple-darwin
+            ext: ''
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ''
+          - name: Windows (x86_64)
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: .exe
     runs-on: ${{ matrix.platform.os }}
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform.rust_target }}
+          targets: ${{ matrix.platform.target }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -86,68 +111,29 @@ jobs:
         if: matrix.platform.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libsoup2.4-dev \
-            libjavascriptcoregtk-4.1-dev
-          # Create symlinks for webkit2gtk-4.0 compatibility
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-web-extension-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-web-extension-4.0.pc
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/javascriptcoregtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/javascriptcoregtk-4.0.pc
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.0.so
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libjavascriptcoregtk-4.1.so /usr/lib/x86_64-linux-gnu/libjavascriptcoregtk-4.0.so
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          releaseId: ${{ needs.create-release.outputs.upload_url }}
-          args: --target ${{ matrix.platform.rust_target }}
-      
-      - name: Generate checksums
-        shell: bash
-        run: |
-          cd src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle
-          for file in *${{ matrix.platform.artifact_ext }}; do
-            if [ -f "$file" ]; then
-              sha256sum "$file" > "$file.sha256"
-            fi
-          done
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.platform.artifact_name }}-${{ matrix.platform.rust_target }}
-          path: |
-            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*${{ matrix.platform.artifact_ext }}
-            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*.sha256
+          tagName: ${{ needs.create-release.outputs.version }}
+          releaseName: 'Open-Jarvis ${{ needs.create-release.outputs.version }}'
+          releaseBody: 'See the assets below to download this version.'
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.platform.target }}
 
   publish-release:
-    name: Publish Release Notes
+    name: Publish Release
     needs: [create-release, build-release]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Update release notes
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: context.ref.replace('refs/tags/', '')
-            });
-            
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              body: release.data.body + '\n\n## 🎉 Release completed successfully!\n\nAll platform binaries have been built and uploaded.'
-            });
+      - name: Publish Release
+        run: |
+          echo "Release published: ${{ needs.create-release.outputs.version }}"
+          echo "All platform builds completed successfully!"

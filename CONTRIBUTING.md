@@ -1,260 +1,279 @@
 # Contributing to Open-Jarvis
 
-Thank you for your interest in contributing to Open-Jarvis! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Open-Jarvis! This document provides guidelines and instructions for contributing to the project.
+
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [Development Workflow](#development-workflow)
+- [Code Style](#code-style)
+- [Testing](#testing)
+- [Pull Request Process](#pull-request-process)
+- [Commit Messages](#commit-messages)
 
 ## Code of Conduct
 
-By participating in this project, you agree to maintain a respectful, harassment-free environment for everyone, regardless of background or identity.
+We are committed to providing a welcoming and inclusive environment. Please be respectful and professional in all interactions.
 
 ## Getting Started
 
-### Prerequisites
-
-1. Rust 1.75+ installed via [rustup](https://rustup.rs/)
-2. Node.js 20+ and pnpm/npm
-3. Git for version control
-4. Familiarity with Tauri, Rust, and TypeScript/JavaScript
-
-### Development Setup
-
-1. **Fork and clone the repository:**
+1. **Fork the repository** on GitHub
+2. **Clone your fork** locally:
    ```bash
    git clone https://github.com/YOUR_USERNAME/Open-Jarvis.git
    cd Open-Jarvis
    ```
-
-2. **Create a feature branch:**
+3. **Add upstream remote**:
+   ```bash
+   git remote add upstream https://github.com/sunilkumarvalmiki/Open-Jarvis.git
+   ```
+4. **Create a feature branch**:
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
-3. **Install dependencies and build:**
-   ```bash
-   cd src-tauri
-   cargo build
-   ```
-
-4. **Run the application:**
-   ```bash
-   cargo run
-   ```
-
 ## Development Workflow
 
-### Code Style
+### Setting Up the Development Environment
 
-#### Rust Code
-
-- Follow the [Rust Style Guide](https://doc.rust-lang.org/style-guide/)
-- Use `rustfmt` for automatic formatting:
-  ```bash
-  cargo fmt
-  ```
-- Run `clippy` to catch common mistakes:
-  ```bash
-  cargo clippy -- -D warnings
-  ```
-
-**Rust conventions:**
-- Use snake_case for functions and variables
-- Use PascalCase for types and traits
-- Keep functions focused and under 50 lines when possible
-- Add documentation comments (`///`) for public APIs
-- Use `Result<T, E>` for error handling
-- Avoid `unwrap()` in production code; use proper error handling
-
-#### Frontend Code
-
-- Use consistent indentation (2 spaces)
-- Follow JavaScript/TypeScript best practices
-- Use meaningful variable and function names
-- Add comments for complex logic
-
-### Git Workflow
-
-1. **Keep commits atomic** - One logical change per commit
-2. **Write meaningful commit messages:**
-   ```
-   feat: Add voice command processing
+1. **Install dependencies**:
+   ```bash
+   # Install Rust (if not already installed)
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    
-   - Implement voice recognition module
-   - Add audio input handling
-   - Integrate with command parser
+   # Install Node.js dependencies (if package.json exists)
+   npm install
    ```
 
-3. **Commit message format:**
-   - `feat:` - New feature
-   - `fix:` - Bug fix
-   - `docs:` - Documentation changes
-   - `style:` - Code style changes (formatting, etc.)
-   - `refactor:` - Code refactoring
-   - `test:` - Adding or updating tests
-   - `chore:` - Maintenance tasks
+2. **Install platform-specific dependencies**:
+   - **Ubuntu/Debian**: `sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`
+   - **macOS**: `xcode-select --install`
+   - **Windows**: No additional dependencies required
 
-### Testing Requirements
+3. **Run the application in development mode**:
+   ```bash
+   cd src-tauri
+   cargo tauri dev
+   ```
 
-#### Unit Tests
-
-- Write unit tests for new Rust functions
-- Place tests in the same file or in a `tests` module:
-  ```rust
-  #[cfg(test)]
-  mod tests {
-      use super::*;
-      
-      #[test]
-      fn test_my_function() {
-          assert_eq!(my_function(input), expected);
-      }
-  }
-  ```
-
-#### Running Tests
+### Keeping Your Fork Updated
 
 ```bash
-# Run all tests
-cargo test
-
-# Run specific test
-cargo test test_name
-
-# Run with output
-cargo test -- --nocapture
+git fetch upstream
+git checkout main
+git merge upstream/main
+git push origin main
 ```
 
-#### Integration Tests
+## Code Style
 
-- Add integration tests in `src-tauri/tests/` directory
-- Test command handlers and Tauri-specific functionality
+### Rust
 
-### Pull Request Process
+We follow the official Rust style guidelines and use `rustfmt` and `clippy` for code quality.
 
-1. **Before submitting:**
-   - Ensure all tests pass: `cargo test`
-   - Format code: `cargo fmt`
-   - Check for linting issues: `cargo clippy -- -D warnings`
-   - Update documentation if needed
-   - Test on your target platform
+#### Formatting
 
-2. **Creating a Pull Request:**
-   - Use a clear, descriptive title
-   - Reference any related issues: "Fixes #123"
-   - Provide a detailed description of changes
+Before submitting a PR, format your code:
+
+```bash
+cd src-tauri
+cargo fmt
+```
+
+#### Linting
+
+Ensure your code passes Clippy checks:
+
+```bash
+cd src-tauri
+cargo clippy -- -D warnings
+```
+
+#### Rust Conventions
+
+- Use snake_case for function and variable names
+- Use CamelCase for types and structs
+- Add documentation comments (`///`) for public APIs
+- Keep functions focused and single-purpose
+- Prefer explicit error handling over `.unwrap()`
+- Use meaningful variable names
+
+**Example:**
+
+```rust
+/// Organizes files in the specified directory by file type.
+///
+/// # Arguments
+///
+/// * `dir` - The directory path to organize
+///
+/// # Returns
+///
+/// Returns `Ok(())` on success, or an error message on failure.
+fn organize_files(dir: &Path) -> Result<(), String> {
+    // Implementation
+}
+```
+
+### JavaScript/HTML/CSS
+
+- Use 2 spaces for indentation
+- Use semicolons in JavaScript
+- Use meaningful variable and function names
+- Keep functions small and focused
+
+## Testing
+
+### Running Tests
+
+```bash
+cd src-tauri
+cargo test
+```
+
+### Writing Tests
+
+- Write unit tests for all new functions
+- Place tests in the same file using `#[cfg(test)]` module
+- Use descriptive test names that explain what is being tested
+
+**Example:**
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_organize_files_creates_directories() {
+        // Test implementation
+    }
+
+    #[test]
+    fn test_empty_recycle_bin_success() {
+        // Test implementation
+    }
+}
+```
+
+### Test Coverage
+
+- Aim for at least 70% code coverage for new features
+- Critical paths should have 100% coverage
+- Test both success and error cases
+
+## Pull Request Process
+
+1. **Ensure your code follows the style guidelines**:
+   ```bash
+   cargo fmt
+   cargo clippy -- -D warnings
+   cargo test
+   ```
+
+2. **Update documentation** if you're changing functionality
+
+3. **Create a pull request** with a clear title and description:
+   - Reference any related issues (e.g., "Fixes #123")
+   - Describe what changes you made and why
    - Include screenshots for UI changes
    - List any breaking changes
 
-3. **PR Template:**
-   ```markdown
-   ## Description
-   Brief description of changes
-   
-   ## Type of Change
-   - [ ] Bug fix
-   - [ ] New feature
-   - [ ] Breaking change
-   - [ ] Documentation update
-   
-   ## Testing
-   - [ ] Unit tests added/updated
-   - [ ] Integration tests added/updated
-   - [ ] Manual testing performed
-   
-   ## Checklist
-   - [ ] Code follows style guidelines
-   - [ ] Self-review completed
-   - [ ] Comments added for complex code
-   - [ ] Documentation updated
-   - [ ] No new warnings generated
-   ```
+4. **Wait for review**:
+   - Address any feedback from reviewers
+   - Make requested changes in new commits
+   - Once approved, your PR will be merged
 
-4. **Review process:**
-   - Maintainers will review your PR
-   - Address feedback promptly
-   - Keep the PR scope focused
-   - Squash commits if requested
+### PR Template
 
-### Code Review Guidelines
+When creating a PR, please include:
 
-When reviewing others' code:
-- Be respectful and constructive
-- Focus on the code, not the person
-- Explain the "why" behind suggestions
-- Approve when ready, or request changes with clear guidance
+- **Description**: What does this PR do?
+- **Related Issue**: Fixes #(issue number)
+- **Type of Change**: Bug fix, new feature, documentation, etc.
+- **Testing**: How was this tested?
+- **Screenshots**: If applicable
+- **Checklist**:
+  - [ ] Code follows style guidelines
+  - [ ] Tests added/updated
+  - [ ] Documentation updated
+  - [ ] No breaking changes (or documented)
 
-## Project Structure
+## Commit Messages
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
-Open-Jarvis/
-├── src/                    # Frontend code (HTML, CSS, JS)
-├── src-tauri/              # Rust backend
-│   ├── src/
-│   │   ├── main.rs        # Application entry point
-│   │   └── mcp/           # MCP integration modules
-│   ├── Cargo.toml         # Rust dependencies
-│   └── tauri.conf.json    # Tauri configuration
-├── docs/                   # Documentation
-├── .github/               # GitHub workflows and templates
-└── README.md
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
 ```
 
-## Documentation
+### Types
 
-- Update README.md for user-facing features
-- Add/update docs/ for detailed documentation
-- Include inline code comments for complex logic
-- Use Rust doc comments (`///`) for public APIs:
-  ```rust
-  /// Processes a voice command and returns the result
-  ///
-  /// # Arguments
-  ///
-  /// * `command` - The command string to process
-  ///
-  /// # Returns
-  ///
-  /// Result containing the command output or an error
-  pub fn process_command(command: &str) -> Result<String, Error> {
-      // Implementation
-  }
-  ```
+- **feat**: A new feature
+- **fix**: A bug fix
+- **docs**: Documentation only changes
+- **style**: Code style changes (formatting, etc.)
+- **refactor**: Code refactoring
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **chore**: Maintenance tasks
 
-## Reporting Bugs
+### Examples
 
-Use GitHub Issues with the bug report template:
+```
+feat(mcp): add GitHub tool integration
 
-1. Clear, descriptive title
-2. Steps to reproduce
-3. Expected behavior
-4. Actual behavior
-5. System information (OS, Rust version, etc.)
-6. Screenshots if applicable
+Implements MCP client for GitHub operations including
+repository management and issue tracking.
+
+Fixes #42
+```
+
+```
+fix(ui): correct button alignment on mobile
+
+The action buttons were overlapping on small screens.
+Updated CSS to use flexbox for better responsiveness.
+```
+
+```
+docs(readme): update installation instructions
+
+Added platform-specific dependency installation steps
+for Ubuntu, macOS, and Windows.
+```
+
+## Issue Reporting
+
+When reporting issues, please include:
+
+- **Clear title** describing the problem
+- **Steps to reproduce** the issue
+- **Expected behavior** vs. actual behavior
+- **Environment details**: OS, Rust version, Node version
+- **Screenshots** if applicable
+- **Logs** or error messages
 
 ## Feature Requests
 
-Use GitHub Issues with the feature request template:
+For feature requests, please include:
 
-1. Clear description of the feature
-2. Use case and motivation
-3. Possible implementation approach
-4. Alternative solutions considered
-
-## Security Vulnerabilities
-
-**Do not open public issues for security vulnerabilities.**
-
-Instead, email security concerns to: [sunil.kumar@example.com]
+- **Clear description** of the feature
+- **Use case**: Why is this feature needed?
+- **Proposed implementation**: If you have ideas
+- **Alternatives considered**: Other approaches you've thought about
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/sunilkumarvalmiki/Open-Jarvis/discussions)
-- Check existing issues and documentation
-- Join our community chat (if available)
+If you have questions about contributing, feel free to:
 
-## Recognition
-
-Contributors will be recognized in:
-- CONTRIBUTORS.md file
-- Release notes
-- Project documentation
+- Open an issue with the `question` label
+- Start a discussion in GitHub Discussions
+- Reach out to the maintainers
 
 Thank you for contributing to Open-Jarvis! 🎉

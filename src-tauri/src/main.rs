@@ -1,6 +1,9 @@
 use std::{fs, path::Path};
 use tauri::Manager;
 
+// MCP integration module (stub implementation)
+mod mcp;
+
 #[tauri::command]
 fn open_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
     tauri::async_runtime::spawn(async move {

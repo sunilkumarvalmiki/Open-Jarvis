@@ -1,159 +1,158 @@
-//! MCP configuration structures
+//! MCP configuration management
 //!
-//! This module defines configuration structures for MCP integration.
+//! This module handles loading and managing MCP server configurations.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Main MCP configuration
+/// MCP server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpConfig {
-    /// Whether MCP integration is enabled
-    pub enabled: bool,
-
-    /// Configuration for each MCP server
+    /// Map of server name to server configuration
     pub servers: HashMap<String, ServerConfig>,
 
-    /// Tool-specific configuration
+    /// Security settings
     #[serde(default)]
-    pub tools: HashMap<String, ToolConfig>,
-}
-
-/// Configuration for a single MCP server
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ServerConfig {
-    /// Command to execute to start the server
-    pub command: String,
-
-    /// Arguments to pass to the command
-    #[serde(default)]
-    pub args: Vec<String>,
-
-    /// Environment variables for the server process
-    #[serde(default)]
-    pub env: HashMap<String, String>,
-
-    /// Whether this server is disabled
-    #[serde(default)]
-    pub disabled: bool,
-
-    /// Server-specific settings
-    #[serde(default)]
-    pub settings: HashMap<String, serde_json::Value>,
-}
-
-/// Configuration for a specific tool
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ToolConfig {
-    /// Whether this tool is enabled
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-
-    /// Whether to require user confirmation before executing
-    #[serde(default)]
-    pub require_confirmation: bool,
-
-    /// Rate limiting configuration
-    #[serde(default)]
-    pub rate_limit: Option<RateLimitConfig>,
-
-    /// Default parameter values
-    #[serde(default)]
-    pub defaults: HashMap<String, serde_json::Value>,
-}
-
-/// Rate limiting configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RateLimitConfig {
-    /// Maximum number of calls allowed
-    pub max_calls: u32,
-
-    /// Time window in milliseconds
-    pub window_ms: u64,
+    pub security: SecurityConfig,
 }
 
 impl Default for McpConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
             servers: HashMap::new(),
-            tools: HashMap::new(),
+            security: SecurityConfig::default(),
         }
     }
 }
 
 impl McpConfig {
-    /// Load configuration from a file
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Path to the configuration file
+    /// Loads configuration from the default location
     ///
     /// # Returns
     ///
-    /// Loaded configuration or error
-    pub fn from_file(path: &std::path::Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read config file: {}", e))?;
-
-        let config: Self = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse config: {}", e))?;
-
-        Ok(config)
+    /// Returns the loaded configuration or an error
+    pub fn load() -> Result<Self, String> {
+        // TODO: Implement actual config loading from file
+        Ok(Self::default())
     }
 
-    /// Save configuration to a file
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Path to save the configuration
+    /// Saves configuration to the default location
     ///
     /// # Returns
     ///
-    /// Result indicating success or error
-    pub fn save_to_file(&self, path: &std::path::Path) -> Result<(), String> {
-        let content = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize config: {}", e))?;
-
-        std::fs::write(path, content)
-            .map_err(|e| format!("Failed to write config file: {}", e))?;
-
+    /// Returns Ok on success or an error message
+    pub fn save(&self) -> Result<(), String> {
+        // TODO: Implement actual config saving
         Ok(())
     }
 
-    /// Get the default configuration file path
+    /// Gets a specific server configuration by name
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of the server
     ///
     /// # Returns
     ///
-    /// Path to the default configuration file
-    pub fn default_path() -> Result<std::path::PathBuf, String> {
-        let config_dir = dirs_next::config_dir()
-            .ok_or_else(|| "Could not determine config directory".to_string())?;
-
-        Ok(config_dir.join("jarvis").join("mcp-config.json"))
+    /// Returns the server configuration if found
+    pub fn get_server(&self, name: &str) -> Option<&ServerConfig> {
+        self.servers.get(name)
     }
+}
 
-    /// Load configuration from the default location
-    ///
-    /// # Returns
-    ///
-    /// Loaded configuration or default if file doesn't exist
-    pub fn load_or_default() -> Self {
-        let path = match Self::default_path() {
-            Ok(p) => p,
-            Err(_) => return Self::default(),
-        };
+/// Configuration for a specific MCP server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerConfig {
+    /// Type of server transport
+    #[serde(rename = "type")]
+    pub server_type: ServerType,
 
-        if path.exists() {
-            Self::from_file(&path).unwrap_or_default()
-        } else {
-            Self::default()
-        }
-    }
+    /// Command to run (for stdio servers)
+    pub command: Option<String>,
+
+    /// Arguments for the command
+    pub args: Option<Vec<String>>,
+
+    /// URL for HTTP/WebSocket servers
+    pub url: Option<String>,
+
+    /// Environment variables
+    pub env: Option<HashMap<String, String>>,
+
+    /// Whether the server is enabled
+    #[serde(default = "default_true")]
+    pub enabled: bool,
 }
 
 fn default_true() -> bool {
     true
+}
+
+/// Type of MCP server transport
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ServerType {
+    /// Standard I/O based communication
+    Stdio,
+
+    /// HTTP-based communication
+    Http,
+
+    /// WebSocket-based communication
+    WebSocket,
+}
+
+/// Security configuration for MCP operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityConfig {
+    /// Whether to allow file system access
+    #[serde(default = "default_false")]
+    pub allow_file_system_access: bool,
+
+    /// Allowed file system paths
+    #[serde(default)]
+    pub allowed_paths: Vec<String>,
+
+    /// Whether to require user confirmation for operations
+    #[serde(default = "default_true")]
+    pub require_confirmation: bool,
+
+    /// Confirmation threshold level
+    #[serde(default)]
+    pub confirmation_threshold: ConfirmationLevel,
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            allow_file_system_access: false,
+            allowed_paths: Vec::new(),
+            require_confirmation: true,
+            confirmation_threshold: ConfirmationLevel::Medium,
+        }
+    }
+}
+
+fn default_false() -> bool {
+    false
+}
+
+/// Level of confirmation required for operations
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ConfirmationLevel {
+    /// No confirmation required
+    None,
+
+    /// Confirmation for low-risk operations
+    Low,
+
+    /// Confirmation for medium-risk operations (default)
+    #[default]
+    Medium,
+
+    /// Confirmation for all operations
+    High,
 }
 
 #[cfg(test)]
@@ -163,29 +162,25 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = McpConfig::default();
-        assert!(config.enabled);
         assert!(config.servers.is_empty());
-        assert!(config.tools.is_empty());
+        assert!(config.security.require_confirmation);
     }
 
     #[test]
-    fn test_config_serialization() {
-        let mut config = McpConfig::default();
-        config.servers.insert(
-            "test".to_string(),
-            ServerConfig {
-                command: "test-command".to_string(),
-                args: vec!["--arg".to_string()],
-                env: HashMap::new(),
-                disabled: false,
-                settings: HashMap::new(),
-            },
-        );
+    fn test_server_config_serialization() {
+        let server = ServerConfig {
+            server_type: ServerType::Stdio,
+            command: Some("npx".to_string()),
+            args: Some(vec!["-y".to_string(), "mcp-server".to_string()]),
+            url: None,
+            env: None,
+            enabled: true,
+        };
 
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: McpConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&server).unwrap();
+        let deserialized: ServerConfig = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(config.enabled, deserialized.enabled);
-        assert_eq!(config.servers.len(), deserialized.servers.len());
+        assert_eq!(server.server_type, deserialized.server_type);
+        assert_eq!(server.command, deserialized.command);
     }
 }

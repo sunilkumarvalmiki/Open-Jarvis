@@ -1,157 +1,94 @@
 //! MCP Client implementation
 //!
-//! This module provides the MCP client for communicating with MCP servers.
+//! This module provides the client for communicating with MCP servers
+//! via stdio, HTTP, or WebSocket transports.
 
-use std::collections::HashMap;
 use serde_json::Value;
 
-/// MCP client for managing connections to MCP servers
+/// MCP Client for communicating with MCP servers
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use crate::mcp::{McpClient, McpConfig};
+///
+/// async fn example() -> Result<(), String> {
+///     let config = McpConfig::default();
+///     let client = McpClient::new(&config).await?;
+///     Ok(())
+/// }
+/// ```
 pub struct McpClient {
-    servers: HashMap<String, ServerConnection>,
-    config: super::config::McpConfig,
-}
-
-/// Represents a connection to an MCP server
-struct ServerConnection {
-    name: String,
-    // Future: Add actual connection details (process handle, transport, etc.)
+    server_name: String,
 }
 
 impl McpClient {
-    /// Create a new MCP client with the given configuration
+    /// Creates a new MCP client instance
     ///
     /// # Arguments
     ///
-    /// * `config` - Configuration for the MCP client
+    /// * `config` - Configuration for the MCP server connection
     ///
-    /// # Example
+    /// # Returns
     ///
-    /// ```rust,no_run
-    /// use mcp::{McpClient, McpConfig};
-    ///
-    /// let config = McpConfig::default();
-    /// let client = McpClient::new(config);
-    /// ```
-    pub fn new(config: super::config::McpConfig) -> Result<Self, String> {
+    /// Returns a Result containing the MCP client or an error message
+    pub async fn new(config: &super::config::McpConfig) -> Result<Self, String> {
+        // TODO: Implement actual client initialization
+        // This will spawn the MCP server process and establish communication
         Ok(Self {
-            servers: HashMap::new(),
-            config,
+            server_name: "default".to_string(),
         })
     }
 
-    /// Connect to an MCP server
+    /// Calls a tool on the MCP server
     ///
     /// # Arguments
     ///
-    /// * `server_name` - Name of the server to connect to
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or error
-    pub async fn connect(&mut self, server_name: &str) -> Result<(), String> {
-        // TODO: Implement actual connection logic
-        // 1. Get server config from self.config
-        // 2. Start the server process
-        // 3. Establish communication channel
-        // 4. Perform handshake
-        // 5. Store connection in self.servers
-
-        let connection = ServerConnection {
-            name: server_name.to_string(),
-        };
-
-        self.servers.insert(server_name.to_string(), connection);
-        Ok(())
-    }
-
-    /// List available tools from a server
-    ///
-    /// # Arguments
-    ///
-    /// * `server_name` - Name of the server
-    ///
-    /// # Returns
-    ///
-    /// Vector of available tools
-    pub async fn list_tools(&self, server_name: &str) -> Result<Vec<super::tools::Tool>, String> {
-        // TODO: Implement tool discovery
-        // 1. Send tools/list request to server
-        // 2. Parse response
-        // 3. Return list of tools
-        
-        if !self.servers.contains_key(server_name) {
-            return Err(format!("Server '{}' not connected", server_name));
-        }
-
-        Ok(Vec::new())
-    }
-
-    /// Call a tool on an MCP server
-    ///
-    /// # Arguments
-    ///
-    /// * `server_name` - Name of the server
     /// * `tool_name` - Name of the tool to call
-    /// * `parameters` - Parameters for the tool
+    /// * `params` - JSON parameters for the tool
     ///
     /// # Returns
     ///
-    /// Result from tool execution
-    pub async fn call_tool(
-        &self,
-        server_name: &str,
-        tool_name: &str,
-        parameters: Value,
-    ) -> Result<Value, String> {
-        // TODO: Implement tool invocation
-        // 1. Validate tool exists
-        // 2. Validate parameters
-        // 3. Send tools/call request
-        // 4. Handle response
-        // 5. Return result
-
-        if !self.servers.contains_key(server_name) {
-            return Err(format!("Server '{}' not connected", server_name));
-        }
-
-        // Placeholder implementation
-        Ok(serde_json::json!({
-            "status": "not_implemented",
-            "message": "Tool invocation not yet implemented",
-            "tool": tool_name,
-            "parameters": parameters
-        }))
+    /// Returns the tool's response as a JSON value
+    pub async fn call_tool(&mut self, tool_name: &str, params: Value) -> Result<Value, String> {
+        // TODO: Implement actual tool calling via JSON-RPC
+        Err(format!(
+            "MCP integration not yet implemented: {}",
+            tool_name
+        ))
     }
 
-    /// Disconnect from a server
+    /// Lists available tools from the MCP server
     ///
-    /// # Arguments
+    /// # Returns
     ///
-    /// * `server_name` - Name of the server to disconnect from
-    pub async fn disconnect(&mut self, server_name: &str) -> Result<(), String> {
-        // TODO: Implement disconnection logic
-        // 1. Send shutdown message to server
-        // 2. Close communication channel
-        // 3. Cleanup resources
-
-        self.servers.remove(server_name);
-        Ok(())
+    /// Returns a list of available tools
+    pub async fn list_tools(&mut self) -> Result<Vec<String>, String> {
+        // TODO: Implement tool listing
+        Ok(vec![])
     }
 
-    /// Disconnect from all servers
-    pub async fn disconnect_all(&mut self) -> Result<(), String> {
-        let server_names: Vec<String> = self.servers.keys().cloned().collect();
-        for server_name in server_names {
-            self.disconnect(&server_name).await?;
-        }
+    /// Closes the connection to the MCP server
+    pub async fn close(&mut self) -> Result<(), String> {
+        // TODO: Implement cleanup
         Ok(())
     }
 }
 
 impl Drop for McpClient {
     fn drop(&mut self) {
-        // Cleanup when client is dropped
-        // Note: Can't use async in Drop, so we just clean up synchronously
-        self.servers.clear();
+        // TODO: Ensure cleanup on drop
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_mcp_client_creation() {
+        let config = super::super::config::McpConfig::default();
+        let result = McpClient::new(&config).await;
+        assert!(result.is_ok());
     }
 }

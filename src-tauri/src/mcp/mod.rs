@@ -5,60 +5,29 @@
 //!
 //! # Overview
 //!
-//! The MCP integration allows Open-Jarvis to communicate with external
-//! tool providers using a standardized protocol. This enables:
-//! - Dynamic tool discovery
-//! - Structured tool invocation
-//! - Standardized error handling
-//! - Security and permission management
+//! The MCP integration allows Open-Jarvis to extend its capabilities
+//! by connecting to external MCP servers that provide tools, resources,
+//! and prompts.
 //!
 //! # Architecture
 //!
-//! ```text
-//! ┌─────────────┐
-//! │ Open-Jarvis │
-//! └──────┬──────┘
-//!        │
-//!        │ Uses
-//!        │
-//!        ▼
-//! ┌──────────────┐       Communicates      ┌──────────────┐
-//! │  McpClient   │◄────────────────────────►│  MCP Server  │
-//! └──────────────┘      JSON-RPC 2.0        └──────────────┘
-//!        │
-//!        │ Manages
-//!        │
-//!        ▼
-//! ┌──────────────┐
-//! │    Tools     │
-//! └──────────────┘
-//! ```
+//! - `client`: MCP client implementation for communicating with servers
+//! - `tools`: Tool registry and management
+//! - `config`: Configuration management for MCP servers
 //!
-//! # Example Usage
+//! # Example
 //!
 //! ```rust,no_run
-//! use mcp::{McpClient, McpConfig};
+//! use crate::mcp::{McpClient, McpConfig};
 //!
-//! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!     let config = McpConfig::default();
-//!     let mut client = McpClient::new(config)?;
+//! async fn example() -> Result<(), String> {
+//!     let config = McpConfig::load()?;
+//!     let client = McpClient::new(&config).await?;
 //!     
-//!     // Connect to a server
-//!     client.connect("github").await?;
-//!     
-//!     // Discover available tools
-//!     let tools = client.list_tools("github").await?;
-//!     
-//!     // Invoke a tool
-//!     let result = client.call_tool(
-//!         "github",
-//!         "create_issue",
-//!         serde_json::json!({
-//!             "owner": "user",
-//!             "repo": "repo",
-//!             "title": "Issue title"
-//!         })
-//!     ).await?;
+//!     // Call a tool
+//!     let result = client.call_tool("github_list_repos", serde_json::json!({
+//!         "username": "sunilkumarvalmiki"
+//!     })).await?;
 //!     
 //!     Ok(())
 //! }
@@ -71,4 +40,4 @@ pub mod tools;
 // Re-exports for convenience
 pub use client::McpClient;
 pub use config::McpConfig;
-pub use tools::{Tool, ToolParameter};
+pub use tools::ToolRegistry;
