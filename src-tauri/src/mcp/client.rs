@@ -3,6 +3,8 @@
 //! This module provides the client for communicating with MCP servers
 //! via stdio, HTTP, or WebSocket transports.
 
+#![allow(dead_code)]
+
 use serde_json::Value;
 
 /// MCP Client for communicating with MCP servers
@@ -32,7 +34,7 @@ impl McpClient {
     /// # Returns
     ///
     /// Returns a Result containing the MCP client or an error message
-    pub async fn new(config: &super::config::McpConfig) -> Result<Self, String> {
+    pub async fn new(_config: &super::config::McpConfig) -> Result<Self, String> {
         // TODO: Implement actual client initialization
         // This will spawn the MCP server process and establish communication
         Ok(Self {
@@ -50,7 +52,7 @@ impl McpClient {
     /// # Returns
     ///
     /// Returns the tool's response as a JSON value
-    pub async fn call_tool(&mut self, tool_name: &str, params: Value) -> Result<Value, String> {
+    pub async fn call_tool(&mut self, tool_name: &str, _params: Value) -> Result<Value, String> {
         // TODO: Implement actual tool calling via JSON-RPC
         Err(format!(
             "MCP integration not yet implemented: {}",
