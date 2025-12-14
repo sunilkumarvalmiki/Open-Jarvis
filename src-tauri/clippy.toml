@@ -1,0 +1,14 @@
+# Clippy linting configuration for Open-Jarvis
+
+# Warn on all clippy lints by default
+warn-on-all-wildcard-imports = true
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Specific lint levels can be set in Cargo.toml or via command line
+# This file is for clippy.toml specific configurations
+
+# Allow some specific lints if needed
+# [lints.clippy]
+# example_lint = "allow"
