@@ -2,11 +2,13 @@
 //!
 //! This module handles loading and managing MCP server configurations.
 
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// MCP server configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpConfig {
     /// Map of server name to server configuration
     pub servers: HashMap<String, ServerConfig>,
@@ -14,15 +16,6 @@ pub struct McpConfig {
     /// Security settings
     #[serde(default)]
     pub security: SecurityConfig,
-}
-
-impl Default for McpConfig {
-    fn default() -> Self {
-        Self {
-            servers: HashMap::new(),
-            security: SecurityConfig::default(),
-        }
-    }
 }
 
 impl McpConfig {

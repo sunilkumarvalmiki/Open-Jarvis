@@ -2,6 +2,8 @@
 //!
 //! This module manages the registry of available MCP tools and their metadata.
 
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

@@ -1,14 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Jarvis Actions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>Jarvis - AI Assistant</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="card" id="open-browser">Open Rust Website</div>
-  <div class="card" id="empty-bin">Empty Recycle Bin</div>
-  <div class="card" id="organize-files">Organize Downloads</div>
+  <header>
+    <h1>🤖 Jarvis</h1>
+    <p class="subtitle">Your AI-powered desktop assistant</p>
+  </header>
+  
+  <main class="actions">
+    <button class="card" id="open-browser" type="button" aria-label="Open Rust website in browser">
+      <span class="icon">🌐</span>
+      <span class="label">Open Rust Website</span>
+    </button>
+    
+    <button class="card" id="empty-bin" type="button" aria-label="Empty system recycle bin">
+      <span class="icon">🗑️</span>
+      <span class="label">Empty Recycle Bin</span>
+    </button>
+    
+    <button class="card" id="organize-files" type="button" aria-label="Organize downloads folder">
+      <span class="icon">📁</span>
+      <span class="label">Organize Downloads</span>
+    </button>
+  </main>
+  
+  <div id="notifications" aria-live="polite"></div>
+  
   <script src="main.js"></script>
 </body>
 </html>

@@ -38,6 +38,9 @@ pub mod config;
 pub mod tools;
 
 // Re-exports for convenience
+#[allow(unused_imports)]
 pub use client::McpClient;
+#[allow(unused_imports)]
 pub use config::McpConfig;
+#[allow(unused_imports)]
 pub use tools::ToolRegistry;
