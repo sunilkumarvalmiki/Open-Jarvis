@@ -1,31 +1,16 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Jarvis",
+  "version": "0.1.0",
+  "identifier": "com.example.jarvis",
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
-    "devPath": "../src",
-    "distDir": "../src",
-    "withGlobalTauri": true
+    "devUrl": "../src",
+    "frontendDist": "../src"
   },
-  "package": {
-    "productName": "Jarvis",
-    "version": "0.1.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
-      }
-    },
-    "bundle": {
-      "active": true,
-      "identifier": "com.example.jarvis",
-      "targets": "all"
-    },
-    "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
-    },
+  "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Jarvis",
@@ -34,6 +19,14 @@
         "resizable": true,
         "fullscreen": false
       }
-    ]
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": []
   }
 }

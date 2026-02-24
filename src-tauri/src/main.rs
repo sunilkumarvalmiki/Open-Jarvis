@@ -11,7 +11,8 @@ async fn open_browser(app: tauri::AppHandle, url: String) -> Result<String, Stri
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err("Only http and https URLs are supported".to_string());
     }
-    tauri::api::shell::open(&app.shell_scope(), url.clone(), None).map_err(|e| e.to_string())?;
+    use tauri_plugin_shell::ShellExt;
+    app.shell().open(url.clone(), None).map_err(|e| e.to_string())?;
     Ok(format!("Opened {} successfully", url))
 }
 
@@ -154,6 +155,7 @@ fn main() {
     log::info!("Starting Jarvis application");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             open_browser,
             empty_recycle_bin,
