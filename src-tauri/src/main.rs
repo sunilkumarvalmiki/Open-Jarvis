@@ -1,17 +1,12 @@
 use std::{fs, path::Path};
-use tauri::Manager;
 
-// MCP integration module (stub implementation)
-mod mcp;
-
-// Error types module
 mod error;
+mod mcp;
 
 #[tauri::command]
 async fn open_browser(app: tauri::AppHandle, url: String) -> Result<String, String> {
-    let url_clone = url.clone();
-    tauri::api::shell::open(&app.shell_scope(), url, None).map_err(|e| e.to_string())?;
-    Ok(format!("Opened {} successfully", url_clone))
+    tauri::api::shell::open(&app.shell_scope(), url.clone(), None).map_err(|e| e.to_string())?;
+    Ok(format!("Opened {} successfully", url))
 }
 
 #[tauri::command]
@@ -32,10 +27,13 @@ async fn organize_files() -> Result<String, String> {
 fn empty_bin_impl() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("powershell")
+        let status = std::process::Command::new("powershell")
             .args(["-NoProfile", "-Command", "Clear-RecycleBin -Force"])
             .status()
             .map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err("Failed to empty recycle bin".to_string());
+        }
     }
     #[cfg(target_os = "macos")]
     {
@@ -73,7 +71,6 @@ fn organize_impl(dir: &Path) -> Result<String, String> {
     let archives = dir.join("Archives");
     let code = dir.join("Code");
 
-    // Create all directories
     for d in [&docs, &music, &pics, &videos, &archives, &code] {
         fs::create_dir_all(d).map_err(|e| e.to_string())?;
     }
@@ -86,26 +83,21 @@ fn organize_impl(dir: &Path) -> Result<String, String> {
         if path.is_file() {
             if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
                 let dest = match ext.to_lowercase().as_str() {
-                    // Documents
                     "pdf" | "doc" | "docx" | "txt" | "rtf" | "odt" | "xls" | "xlsx" | "ppt"
                     | "pptx" | "csv" => Some(&docs),
-                    // Music
                     "mp3" | "wav" | "flac" | "aac" | "ogg" | "wma" | "m4a" => Some(&music),
-                    // Pictures
                     "jpg" | "jpeg" | "png" | "gif" | "bmp" | "svg" | "webp" | "ico" | "tiff"
                     | "heic" => Some(&pics),
-                    // Videos
-                    "mp4" | "avi" | "mkv" | "mov" | "wmv" | "flv" | "webm" | "m4v" => Some(&videos),
-                    // Archives
+                    "mp4" | "avi" | "mkv" | "mov" | "wmv" | "flv" | "webm" | "m4v" => {
+                        Some(&videos)
+                    }
                     "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz" => Some(&archives),
-                    // Code
                     "rs" | "py" | "js" | "ts" | "jsx" | "tsx" | "go" | "java" | "c" | "cpp"
                     | "h" | "hpp" | "rb" | "php" | "swift" | "kt" | "scala" => Some(&code),
                     _ => None,
                 };
                 if let Some(dest_dir) = dest {
                     let mut dest_path = dest_dir.join(entry.file_name());
-                    // Handle existing files by appending a number
                     if dest_path.exists() {
                         let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
                         let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");

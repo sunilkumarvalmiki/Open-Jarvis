@@ -35,6 +35,7 @@
 
 pub mod client;
 pub mod config;
+pub mod server;
 pub mod tools;
 
 // Re-exports for convenience

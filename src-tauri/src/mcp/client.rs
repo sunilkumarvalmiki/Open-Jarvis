@@ -6,6 +6,43 @@
 #![allow(dead_code)]
 
 use serde_json::Value;
+use thiserror::Error;
+
+/// Errors that can occur during MCP operations
+#[derive(Debug, Error)]
+pub enum McpError {
+    #[error("Tool not found: {0}")]
+    ToolNotFound(String),
+
+    #[error("Connection failed: {0}")]
+    ConnectionFailed(String),
+
+    #[error("Invalid response: {0}")]
+    InvalidResponse(String),
+
+    #[error("MCP not yet implemented: {0}")]
+    NotImplemented(String),
+}
+
+impl From<McpError> for String {
+    fn from(err: McpError) -> Self {
+        err.to_string()
+    }
+}
+
+/// Definition of a tool provided by an MCP server
+#[derive(Debug, Clone)]
+pub struct ToolDefinition {
+    pub name: String,
+    pub description: String,
+    pub parameters: Value,
+}
+
+/// Trait implemented by MCP server adapters
+pub trait McpServer: Send + Sync {
+    fn name(&self) -> &str;
+    fn tools(&self) -> Vec<ToolDefinition>;
+}
 
 /// MCP Client for communicating with MCP servers
 ///
@@ -35,11 +72,14 @@ impl McpClient {
     ///
     /// Returns a Result containing the MCP client or an error message
     pub async fn new(_config: &super::config::McpConfig) -> Result<Self, String> {
-        // TODO: Implement actual client initialization
-        // This will spawn the MCP server process and establish communication
         Ok(Self {
             server_name: "default".to_string(),
         })
+    }
+
+    /// Returns the name of the server this client is connected to
+    pub fn server_name(&self) -> &str {
+        &self.server_name
     }
 
     /// Calls a tool on the MCP server
@@ -53,11 +93,7 @@ impl McpClient {
     ///
     /// Returns the tool's response as a JSON value
     pub async fn call_tool(&mut self, tool_name: &str, _params: Value) -> Result<Value, String> {
-        // TODO: Implement actual tool calling via JSON-RPC
-        Err(format!(
-            "MCP integration not yet implemented: {}",
-            tool_name
-        ))
+        Err(McpError::NotImplemented(tool_name.to_string()).into())
     }
 
     /// Lists available tools from the MCP server
@@ -66,20 +102,12 @@ impl McpClient {
     ///
     /// Returns a list of available tools
     pub async fn list_tools(&mut self) -> Result<Vec<String>, String> {
-        // TODO: Implement tool listing
         Ok(vec![])
     }
 
     /// Closes the connection to the MCP server
     pub async fn close(&mut self) -> Result<(), String> {
-        // TODO: Implement cleanup
         Ok(())
-    }
-}
-
-impl Drop for McpClient {
-    fn drop(&mut self) {
-        // TODO: Ensure cleanup on drop
     }
 }
 
