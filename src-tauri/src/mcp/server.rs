@@ -3,7 +3,9 @@
 //! This module contains concrete implementations of MCP servers
 //! that can be used with the MCP client.
 
-use super::client::{McpError, McpServer, ToolDefinition};
+#![allow(dead_code)]
+
+use super::client::{McpServer, ToolDefinition};
 
 /// Example filesystem MCP server
 pub struct FilesystemMcpServer {
@@ -61,28 +63,24 @@ impl McpServer for FilesystemMcpServer {
             },
         ]
     }
+}
 
-    async fn call_tool(
-        &self,
-        tool: &str,
-        _params: serde_json::Value,
-    ) -> Result<serde_json::Value, McpError> {
-        match tool {
-            "read_file" => {
-                // TODO: Implement actual file reading logic
-                // This is a placeholder implementation for the MCP foundation
-                Ok(serde_json::json!({
-                    "content": "File content placeholder"
-                }))
-            }
-            "list_directory" => {
-                // TODO: Implement actual directory listing logic
-                // This is a placeholder implementation for the MCP foundation
-                Ok(serde_json::json!({
-                    "files": []
-                }))
-            }
-            _ => Err(McpError::ToolNotFound(tool.to_string())),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_filesystem_server_name() {
+        let server = FilesystemMcpServer::new();
+        assert_eq!(server.name(), "filesystem");
+    }
+
+    #[test]
+    fn test_filesystem_server_tools() {
+        let server = FilesystemMcpServer::new();
+        let tools = server.tools();
+        assert_eq!(tools.len(), 2);
+        assert_eq!(tools[0].name, "read_file");
+        assert_eq!(tools[1].name, "list_directory");
     }
 }

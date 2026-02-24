@@ -13,10 +13,11 @@ function setLoading(buttonId, loading) {
 }
 
 function showNotification(message, type = 'success') {
+  const container = document.getElementById('notifications');
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
   notification.textContent = message;
-  document.body.appendChild(notification);
+  container.appendChild(notification);
   setTimeout(() => notification.remove(), 3000);
 }
 
